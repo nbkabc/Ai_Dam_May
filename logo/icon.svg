@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0B1F3A"/><stop offset="1" stop-color="#12335E"/></linearGradient>
+<linearGradient id="g" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#00C27A"/><stop offset="1" stop-color="#5CF2B0"/></linearGradient></defs>
+<rect width="240" height="240" rx="52" fill="url(#bg)"/>
+<!-- T letter -->
+<rect x="62" y="62" width="116" height="26" rx="8" fill="#fff"/>
+<rect x="107" y="62" width="26" height="116" rx="8" fill="#fff"/>
+<!-- rising line / arrow -->
+<polyline points="48,178 92,140 118,156 188,92" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="196,82 170,86 190,108" fill="#5CF2B0"/>
+<!-- circuit nodes -->
+<circle cx="92" cy="140" r="8" fill="#0B1F3A" stroke="#00C27A" stroke-width="5"/>
+<circle cx="118" cy="156" r="8" fill="#0B1F3A" stroke="#00C27A" stroke-width="5"/>
+</svg>
