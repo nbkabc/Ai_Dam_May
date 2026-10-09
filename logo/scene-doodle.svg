@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7d776a"/><stop offset=".55" stop-color="#d9cfae"/><stop offset="1" stop-color="#ece0bd"/></linearGradient>
+<linearGradient id="face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f4f2"/><stop offset="1" stop-color="#bfc0bf"/></linearGradient>
+</defs>
+<rect width="1280" height="720" fill="url(#sky)"/>
+<g fill="none" stroke="#161616" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+<!-- shop right -->
+<path d="M1010 0V400M1100 0V400"/>
+<rect x="900" y="150" width="400" height="100" fill="#e4d9b5"/><rect x="915" y="162" width="370" height="76"/>
+<path d="M890 250H1300V300H890Z" fill="#cfc4a0"/>
+<path d="M930 300V520M960 300V520M990 300V520M1030 300V520" />
+<rect x="1050" y="330" width="90" height="190" fill="#dfd4b0"/>
+<text x="1100" y="215" font-family="Arial,sans-serif" font-weight="700" font-size="40" text-anchor="middle" fill="#161616" stroke="none">TIỀN SỐ</text>
+<!-- sidewalk + road -->
+<rect x="0" y="520" width="1280" height="80" fill="#bfc4a0" stroke="none"/><path d="M0 520H1280M0 600H1280"/>
+<rect x="0" y="602" width="1280" height="118" fill="#9b9b9a" stroke="none"/>
+<path d="M0 604H1280"/>
+<path d="M300 668H430M850 668H980" stroke="#fff" stroke-width="14"/>
+<!-- tree -->
+<path d="M770 520V380" stroke-width="22" stroke="#161616"/><path d="M770 520V380" stroke-width="14" stroke="#e6dcc0"/>
+<ellipse cx="770" cy="523" rx="38" ry="9" fill="#e6dcc0"/>
+<path d="M730 360Q690 340 705 300Q695 255 745 262Q770 225 805 255Q850 245 850 300Q870 340 830 365Q800 392 770 380Q745 392 730 360Z" fill="#9da58a"/>
+<!-- man -->
+<path d="M388 470V548M454 470V548" stroke-width="30" stroke="#161616"/>
+<path d="M388 470V548M454 470V548" stroke-width="22" stroke="#5f7189"/>
+<path d="M370 556Q388 546 408 552L410 560H368ZM436 556Q456 546 474 556L476 562H434Z" fill="#f0f0f0"/>
+<path d="M372 365Q420 350 468 365L474 475H366Z" fill="#9fb7d1"/>
+<path d="M372 372L346 440L362 446L384 395ZM468 372L494 410L480 425L458 395" fill="#9fb7d1"/>
+<path d="M346 440L344 482M493 412L520 392" stroke-width="12" stroke="#161616"/><path d="M346 440L344 482M493 412L520 392" stroke-width="5" stroke="#e8e8e6"/>
+<circle cx="420" cy="305" r="60" fill="url(#face)"/>
+<path d="M360 300Q350 240 410 242Q450 232 475 255Q480 275 470 285Q440 262 400 270Q380 275 372 305Z" fill="#161616"/>
+<circle cx="398" cy="302" r="9" fill="#fff"/><circle cx="440" cy="302" r="9" fill="#fff"/><circle cx="401" cy="303" r="3.5" fill="#161616" stroke="none"/><circle cx="443" cy="303" r="3.5" fill="#161616" stroke="none"/>
+<path d="M386 280Q398 270 410 278M430 278Q442 270 454 280"/><ellipse cx="420" cy="338" rx="9" ry="12" fill="#2a2a2a"/>
+<!-- woman -->
+<path d="M628 540V556M652 540V556" stroke-width="12" stroke="#161616"/><path d="M628 540V556M652 540V556" stroke-width="5" stroke="#f4f4f2"/>
+<path d="M618 556H636M644 556H664" stroke-width="8"/>
+<path d="M596 462Q640 470 686 462L706 540Q640 552 574 540Z" fill="#7f9068"/>
+<path d="M600 362Q640 352 682 362L688 466Q640 476 594 466Z" fill="#bd7c56"/>
+<path d="M600 372L572 430L590 440L610 396" fill="#bd7c56"/>
+<path d="M572 430L548 392" stroke-width="12" stroke="#161616"/><path d="M572 430L548 392" stroke-width="5" stroke="#f0f0ee"/>
+<circle cx="640" cy="310" r="55" fill="url(#face)"/>
+<path d="M578 320Q560 250 618 246Q690 236 712 300Q722 380 696 410Q682 390 686 350Q680 300 640 290Q600 292 596 335Z" fill="#161616"/>
+<path d="M614 308Q622 302 630 308M654 308Q662 302 670 308"/><path d="M628 338Q640 346 652 338" />
+<!-- phone -->
+<g transform="rotate(-12 520 360)"><rect x="500" y="320" width="48" height="82" rx="8" fill="#2a2a2a"/><rect x="506" y="330" width="36" height="62" rx="3" fill="#14304f" stroke="none"/><path d="M510 382L520 372L528 378L538 350" stroke="#00E08A" stroke-width="4"/></g>
+<!-- coin bubble -->
+<circle cx="520" cy="250" r="30" fill="#f2c94c"/><circle cx="520" cy="250" r="20"/><text x="520" y="260" font-family="Arial,sans-serif" font-weight="700" font-size="26" text-anchor="middle" fill="#161616" stroke="none">$</text>
+<path d="M515 288L520 308L530 290" fill="none" stroke-width="3"/>
+</g>
+</svg>
