@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+<defs>
+<linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#10213c"/><stop offset="1" stop-color="#1d3358"/></linearGradient>
+<linearGradient id="skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2d6c6"/><stop offset="1" stop-color="#b9cbc3"/></linearGradient>
+<radialGradient id="lamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd27a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+<radialGradient id="tvglow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff5a5a" stop-opacity=".25"/><stop offset="1" stop-color="#ff5a5a" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1280" height="720" fill="url(#wall)"/>
+<rect y="580" width="1280" height="140" fill="#0b1527"/>
+<circle cx="1040" cy="260" r="300" fill="url(#tvglow)"/>
+<g stroke="#0a0f1a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+<!-- window with night skyline -->
+<rect x="80" y="110" width="320" height="300" fill="#0b1a35"/>
+<g fill="#16294d" stroke="none"><rect x="90" y="300" width="50" height="110"/><rect x="150" y="250" width="60" height="160"/><rect x="220" y="320" width="45" height="90"/><rect x="275" y="230" width="55" height="180"/><rect x="340" y="290" width="55" height="120"/></g>
+<g fill="#ffd27a" stroke="none"><rect x="160" y="270" width="8" height="8"/><rect x="180" y="300" width="8" height="8"/><rect x="288" y="250" width="8" height="8"/><rect x="306" y="290" width="8" height="8"/><rect x="104" y="330" width="8" height="8"/><rect x="352" y="320" width="8" height="8"/></g>
+<path d="M240 110V410M80 260H400" fill="none"/>
+<!-- wall monitor -->
+<rect x="860" y="130" width="340" height="230" rx="6" fill="#0b1424"/>
+<path d="M880 330H1180M880 280H1180M880 230H1180M880 180H1180" stroke="#24344f" stroke-width="2"/>
+<g stroke-width="3">
+<path d="M900 190V215" stroke="#00c27a"/><rect x="893" y="195" width="14" height="16" fill="#00c27a"/>
+<path d="M930 180V210" stroke="#00c27a"/><rect x="923" y="186" width="14" height="18" fill="#00c27a"/>
+<path d="M960 190V235" stroke="#ff5a5a"/><rect x="953" y="196" width="14" height="30" fill="#ff5a5a"/>
+<path d="M990 210V260" stroke="#ff5a5a"/><rect x="983" y="218" width="14" height="32" fill="#ff5a5a"/>
+<path d="M1020 235V285" stroke="#ff5a5a"/><rect x="1013" y="242" width="14" height="36" fill="#ff5a5a"/>
+<path d="M1050 255V300" stroke="#00c27a"/><rect x="1043" y="262" width="14" height="30" fill="#00c27a"/>
+<path d="M1080 250V305" stroke="#ff5a5a"/><rect x="1073" y="260" width="14" height="38" fill="#ff5a5a"/>
+<path d="M1110 275V320" stroke="#ff5a5a"/><rect x="1103" y="282" width="14" height="32" fill="#ff5a5a"/>
+<path d="M1140 290V330" stroke="#ff5a5a"/><rect x="1133" y="298" width="14" height="26" fill="#ff5a5a"/>
+</g>
+<text x="1180" y="162" font-family="Arial,sans-serif" font-weight="700" font-size="22" text-anchor="end" fill="#ff6b6b" stroke="none">-3,2%</text>
+<!-- chair -->
+<rect x="548" y="290" width="184" height="200" rx="40" fill="#0b1424"/>
+<!-- body -->
+<path d="M552 336Q640 296 728 336L746 480H534Z" fill="#2c3b57"/>
+<path d="M620 312L640 392L660 312Z" fill="#dfe3ea"/><path d="M634 330L646 330L650 392L640 404L630 392Z" fill="#00a86b"/>
+<rect x="627" y="288" width="26" height="28" fill="#cdbfae"/>
+<!-- head -->
+<ellipse cx="640" cy="248" rx="40" ry="47" fill="url(#skin)"/>
+<ellipse cx="599" cy="252" rx="7" ry="12" fill="#cdbfae"/><ellipse cx="681" cy="252" rx="7" ry="12" fill="#cdbfae"/>
+<path d="M600 238Q596 196 640 194Q688 194 682 238Q668 214 640 214Q614 214 600 238Z" fill="#14100e"/>
+<g fill="none" stroke-width="3"><rect x="613" y="246" width="26" height="18" rx="6"/><rect x="641" y="246" width="26" height="18" rx="6"/><path d="M639 252H641"/></g>
+<path d="M618 255Q626 261 634 255M646 255Q654 261 662 255" fill="none" stroke-width="3"/>
+<path d="M614 238L636 242M666 238L644 242" stroke-width="3.5"/>
+<path d="M616 270Q626 274 634 270M646 270Q654 274 664 270" stroke="#7d8d93" stroke-width="2" fill="none"/>
+<path d="M626 282Q640 278 654 284" fill="none" stroke-width="3"/>
+<g fill="#3a3330" stroke="none"><circle cx="618" cy="286" r="1.6"/><circle cx="628" cy="292" r="1.6"/><circle cx="640" cy="294" r="1.6"/><circle cx="652" cy="292" r="1.6"/><circle cx="662" cy="286" r="1.6"/></g>
+<!-- desk -->
+<rect x="360" y="470" width="560" height="30" rx="4" fill="#6b4f34"/>
+<rect x="400" y="500" width="22" height="130" fill="#4a3624"/><rect x="860" y="500" width="22" height="130" fill="#4a3624"/>
+<!-- laptop (back view) -->
+<path d="M552 400Q552 392 560 392H720Q728 392 728 400V470H552Z" fill="#9aa3b2"/>
+<circle cx="640" cy="432" r="10" fill="#c9d0db"/>
+<!-- arms and hands -->
+<path d="M552 340L520 430L548 452L580 400Z" fill="#2c3b57"/><path d="M728 340L760 430L732 452L700 400Z" fill="#2c3b57"/>
+<ellipse cx="556" cy="458" rx="22" ry="12" fill="#cdbfae"/><ellipse cx="724" cy="458" rx="22" ry="12" fill="#cdbfae"/>
+<!-- coffee -->
+<path d="M790 428H830L826 470H794Z" fill="#e8e8e6"/><path d="M830 438Q846 440 842 456Q838 462 828 460" fill="none"/>
+<path d="M802 418Q796 404 808 396M816 418Q810 404 822 396" fill="none" stroke="#8c97a8" stroke-width="3"/>
+<!-- lamp -->
+<circle cx="430" cy="380" r="110" fill="url(#lamp)" stroke="none"/>
+<path d="M430 470V420L458 372" fill="none" stroke-width="5"/><path d="M440 366L482 358L470 392Z" fill="#ffd27a"/>
+</g>
+</svg>
