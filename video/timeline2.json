@@ -1,0 +1,106 @@
+{
+ "fps": 24,
+ "dur": 30,
+ "cps": 18,
+ "ground": 612,
+ "captions": [
+  {
+   "s": 0.9,
+   "e": 5.0,
+   "text": "Chuyển tiền, thanh toán đều miễn phí.",
+   "hl": "miễn phí",
+   "who": 0
+  },
+  {
+   "s": 5.0,
+   "e": 9.6,
+   "text": "Vậy ai trả tiền cho ứng dụng?",
+   "hl": "ai trả tiền",
+   "who": 1
+  },
+  {
+   "s": 9.6,
+   "e": 14.6,
+   "text": "Nguồn 1: thường là phí nhỏ từ cửa hàng",
+   "hl": "phí nhỏ",
+   "who": 1
+  },
+  {
+   "s": 14.6,
+   "e": 19.6,
+   "text": "Nguồn 2: có thể là lãi từ tiền trong ví",
+   "hl": "lãi",
+   "who": 2
+  },
+  {
+   "s": 19.6,
+   "e": 24.6,
+   "text": "Nguồn 3: dịch vụ như vay, bảo hiểm, đầu tư",
+   "hl": "vay, bảo hiểm, đầu tư",
+   "who": 1
+  },
+  {
+   "s": 24.6,
+   "e": 30.0,
+   "text": "Miễn phí với bạn, không phải không có chi phí",
+   "hl": "không phải không có chi phí",
+   "who": 0
+  }
+ ],
+ "drops": [
+  10.8,
+  11.8,
+  12.8
+ ],
+ "coinHops": [
+  15.5,
+  16.5,
+  17.5
+ ],
+ "cards": [
+  20.4,
+  21.4,
+  22.4
+ ],
+ "walletIn": 14.2,
+ "confetti": 27.5,
+ "endcard": 27.7,
+ "jumps": [
+  {
+   "who": 0,
+   "t": 3.4,
+   "d": 0.5,
+   "h": 30
+  },
+  {
+   "who": 2,
+   "t": 18.4,
+   "d": 0.5,
+   "h": 34
+  },
+  {
+   "who": 0,
+   "t": 21.7,
+   "d": 0.5,
+   "h": 44
+  },
+  {
+   "who": 0,
+   "t": 27.6,
+   "d": 0.6,
+   "h": 70
+  },
+  {
+   "who": 1,
+   "t": 27.7,
+   "d": 0.6,
+   "h": 56
+  },
+  {
+   "who": 2,
+   "t": 27.8,
+   "d": 0.6,
+   "h": 64
+  }
+ ]
+}
