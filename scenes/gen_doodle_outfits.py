@@ -26,25 +26,22 @@ def hand(p): return f'<circle cx="{p[0]}" cy="{p[1]}" r="8" fill="#fff" stroke="
 HEAD = "M-60 -300 C-66 -372 -22 -386 22 -380 C64 -376 72 -332 66 -298 C62 -250 22 -224 -10 -228 C-48 -232 -58 -262 -60 -300Z"
 
 def char(x, y, s, arm="down", legs=("#fff", 0), sleeves=None, shoes="#222", garment="", pre="", post="", expr="smile", hair=None, hat="", flip=False, bare_legs=True, pants=None, front=""):
-    """garment: svg thân áo; pre: vẽ trước thân (balo...), post: vẽ sau đầu (mũ...); front: sau cùng."""
-    a = ARMS[arm]; lg = LEGS["stand"]
+    """Người que đúng nghĩa: tay chân là nét đơn, áo chỉ là mảng quanh thân. Mọi thứ trên thân dịch lên 40 để chân dài hơn."""
+    a = ARMS[arm]
     o = f'<g transform="translate({x} {y}) scale({s * (-1 if flip else 1)} {s})">'
+    # chân: nét đơn, hông ở y=-130
+    o += P("M4 -130 Q-10 -66 -36 0", 10) + P("M4 -130 Q22 -70 46 -6", 10)
+    o += '<g transform="translate(0 -40)">'
     o += pre
-    # chân
-    if pants: o += cp(lg[0], pants, 15) + cp(lg[1], pants, 15)
-    else: o += P(lg[0], 10) + P(lg[1], 10)
-    o += f'<ellipse cx="-36" cy="0" rx="22" ry="9" fill="{shoes}" stroke="{INK}" stroke-width="6"/><ellipse cx="42" cy="0" rx="22" ry="9" fill="{shoes}" stroke="{INK}" stroke-width="6"/>'
     o += P("M-4 -228 Q-8 -160 4 -90", 10)
-    # tay
-    if sleeves: o += cp(a[0], sleeves[0], 13, sleeves[1]) + cp(a[1], sleeves[0], 13, sleeves[1])
-    else: o += P(a[0], 10) + P(a[1], 10)
-    o += hand(a[2]) + hand(a[3])
+    o += P(a[0], 10) + P(a[1], 10)
     o += garment
-    # đầu
+    o += '<g transform="translate(0 -228) scale(.8) translate(0 228)">'
     o += P(HEAD, 10, "#fff")
     if hair: o += hair
-    o += face(expr) + hat + front
-    return o + '</g>'
+    o += face(expr) + hat
+    o += '</g>' + front
+    return o + '</g></g>'
 
 def label(x, y, t, sub=""):
     return f'<text x="{x}" y="{y}" {F} font-size="30" font-weight="800" text-anchor="middle" fill="{INK}">{t}</text>' + (f'<text x="{x}" y="{y+28}" {F} font-size="20" text-anchor="middle" fill="#666">{sub}</text>' if sub else '')
@@ -151,9 +148,7 @@ def mono(markup):
         attr, col = m.group(1), m.group(2).lower()
         if col in ('#222', '#fff', '#ffffff', '#1a1a1a'): return m.group(0)
         r, g, b = (int(col[i:i + 2], 16) / 255 for i in (1, 3, 5)); lum = .2126 * r + .7152 * g + .0722 * b
-        if lum < .26: return f'{attr}="#222"'
-        if lum < .46: return f'{attr}="url(#h2)"'
-        if lum < .72: return f'{attr}="url(#h1)"'
+        if lum < .2: return f'{attr}="#222"'
         return f'{attr}="#fff"'
     return re.sub(r'(fill|stroke)="(#[0-9a-fA-F]{6})"', f, markup)
 
@@ -175,5 +170,5 @@ if __name__ == "__main__":
     hist = [(caveman, "Người tiền sử", "da thú"), (roman, "Chiến binh La Mã", "mũ, khiên, giáo"), (knight, "Hiệp sĩ", "giáp, khiên, kiếm"), (musketeer, "Lính thế kỷ 18", "mũ cao, áo đỏ"), (soldier, "Lính hiện đại", "mũ, áo giáp, balo")]
     life = [(office, "Nhân viên văn phòng", "sơ mi, cà vạt"), (boss, "Giám đốc", "vest, kính, cặp"), (teller, "Nhân viên ngân hàng", "áo gile, tai nghe"), (shipper, "Shipper", "mũ, áo khoác, thùng hàng"),
             (shopkeeper, "Chủ tiệm", "tạp dề, túi hàng"), (student, "Sinh viên", "áo hoodie, balo"), (it, "Dân công nghệ", "hoodie, tai nghe, laptop"), (investor, "Nhà đầu tư", "áo khoác, điện thoại")]
-    for name, items, cols, rows, s, ttl in (("01-lich-su-nen-trang", hist, 5, 1, 1.2, "Nhân vật lịch sử (kiểu người que nét bút lông)"), ("02-doi-song-nen-trang", life, 4, 2, .74, "Nhân vật đời sống và tài chính")):
+    for name, items, cols, rows, s, ttl in (("03-lich-su-nguoi-que", hist, 5, 1, 1.15, "Nhân vật lịch sử (kiểu người que nét bút lông)"), ("04-doi-song-nguoi-que", life, 4, 2, .76, "Nhân vật đời sống và tài chính")):
         open(f"outfits/{name}.svg", "w").write(sheet(name, items, cols, rows, s, ttl)); render(f"outfits/{name}.svg", f"outfits/{name}.png", 1600, 900)
