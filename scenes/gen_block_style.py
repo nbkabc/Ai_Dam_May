@@ -117,6 +117,8 @@ def scene(kind="box"):
     b += '<g filter="url(#wob)">'
     if kind == "stick":
         b += stick_characters()
+    elif kind == "none":
+        pass
     else:
         b += box_char(120, 360, 130, 110, "#c8683a", "up", "o")
         b += box_char(420, 330, 120, 140, "#b9d3e8", "both", "o")
