@@ -1,0 +1,196 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#fff"><div id="root" style="width:1280px;height:720px"></div>
+<script>
+const INK = "#1a1a1a", F = 'Arial,"Liberation Sans",Helvetica,sans-serif', D2R = Math.PI / 180, TL = window.TL, G = TL.ground;
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, u) => a + (b - a) * u;
+const smooth = u => u * u * (3 - 2 * u);
+const backE = (u, c1 = .9) => { const c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); };
+const easeOutBounce = u => { const n = 7.5625, d = 2.75; if (u < 1 / d) return n * u * u; if (u < 2 / d) { u -= 1.5 / d; return n * u * u + .75; } if (u < 2.5 / d) { u -= 2.25 / d; return n * u * u + .9375; } u -= 2.625 / d; return n * u * u + .984375; };
+const easeOutBack = u => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); };
+const ctx = document.createElement('canvas').getContext('2d');
+const measure = (s, size) => { ctx.font = `800 ${size}px ${F}`; return ctx.measureText(s).width; };
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+// ---------------- thư viện tư thế (độ; 0 = thẳng xuống, + = hướng về phía trước) ----------------
+const POSE = {
+  idle:    { lean: 2, head: 0, uaL: 8, faL: 18, uaR: -6, faR: 10, thL: 7, shL: 2, thR: -7, shR: -2 },
+  phone:   { lean: 6, head: 16, uaL: 6, faL: 16, uaR: 38, faR: 112, thL: 3, shL: 1, thR: -3, shR: -1 },
+  startle: { lean: -16, head: -10, uaL: 140, faL: 165, uaR: 150, faR: 172, thL: 16, shL: -8, thR: -10, shR: -28 },
+  think:   { lean: 3, head: 6, uaL: 6, faL: 16, uaR: 62, faR: 196, thL: 3, shL: 1, thR: -3, shR: -1 },
+  scratch: { lean: 2, head: 4, uaL: 6, faL: 16, uaR: 112, faR: 205, thL: 3, shL: 1, thR: -3, shR: -1 },
+  shrug:   { lean: -2, head: 12, uaL: 35, faL: 100, uaR: 35, faR: 100, thL: 3, shL: 1, thR: -3, shR: -1 },
+  point:   { lean: 5, head: 0, uaL: 6, faL: 16, uaR: 82, faR: 90, thL: 6, shL: 3, thR: -6, shR: -3 },
+  pointUp: { lean: 2, head: -8, uaL: 6, faL: 16, uaR: 128, faR: 136, thL: 3, shL: 1, thR: -3, shR: -1 },
+  explain: { lean: 3, head: 4, uaL: 40, faL: 80, uaR: 52, faR: 86, thL: 4, shL: 2, thR: -4, shR: -2 },
+  tip:     { lean: 0, head: 2, uaL: 6, faL: 16, uaR: 150, faR: 172, thL: 3, shL: 1, thR: -3, shR: -1 },
+  squat:   { lean: 26, head: -12, uaL: 24, faL: 12, uaR: 40, faR: 16, thL: 68, shL: -12, thR: 60, shR: -18 },
+  crouch:  { lean: 18, head: -6, uaL: -30, faL: -10, uaR: -22, faR: -4, thL: 40, shL: -24, thR: 36, shR: -30 },
+  cheer:   { lean: -6, head: -10, uaL: 160, faL: 178, uaR: 150, faR: 175, thL: 8, shL: -4, thR: -4, shR: -12 },
+  air:     { lean: -4, head: -8, uaL: 150, faL: 170, uaR: 160, faR: 178, thL: 26, shL: -34, thR: 10, shR: -40 },
+  stern:   { lean: 0, head: 0, uaL: 4, faL: 12, uaR: -2, faR: 8, thL: 2, shL: 0, thR: -2, shR: 0 }
+};
+const mix = (a, b, u) => { const o = {}; for (const k in a) o[k] = lerp(a[k], b[k], u); return o; };
+function poseTrack(t, keys) {
+  let i = 0; while (i + 1 < keys.length && t >= keys[i + 1][0]) i++;
+  const cur = POSE[keys[i][1]], prev = POSE[keys[Math.max(0, i - 1)][1]];
+  const dur = keys[i][2] || .34, u = i === 0 ? 1 : clamp((t - keys[i][0]) / dur);
+  return mix(prev, cur, keys[i][3] === 'soft' ? smooth(u) : backE(u, .7));
+}
+function walkPose(ph, amp, run) {
+  const sL = Math.sin(ph), sR = Math.sin(ph + Math.PI), cL = Math.cos(ph), cR = Math.cos(ph + Math.PI);
+  const bend = (c) => 8 + (run ? 62 : 40) * Math.max(0, c);
+  const thL = amp * sL, thR = amp * sR;
+  const arm = (run ? 1.25 : .85) * amp;
+  return { lean: run ? 15 : 5, head: run ? -6 : 0, thL, shL: thL - bend(cL), thR, shR: thR - bend(cR),
+    uaL: -arm * sL * .9 + 4, faL: -arm * sL * .9 + 4 + (run ? 78 : 26), uaR: arm * sL * .9 + 4, faR: arm * sL * .9 + 4 + (run ? 78 : 26) };
+}
+function track(keys, t) { // [[t,v,ease?],...] -> nội suy mượt
+  if (t <= keys[0][0]) return keys[0][1]; let i = 0; while (i + 1 < keys.length && t >= keys[i + 1][0]) i++;
+  if (i === keys.length - 1) return keys[i][1]; const [t0, v0] = keys[i], [t1, v1] = keys[i + 1], u = clamp((t - t0) / (t1 - t0));
+  return lerp(v0, v1, keys[i][2] === 'lin' ? u : smooth(u));
+}
+const speaking = (t, who) => { const c = TL.captions.find(c => t >= c.s && t < c.e); if (!c || c.who !== who) return false; const ty = (t - c.s - .25) * TL.cps; return ty > 0 && ty < c.text.length + 2; };
+const blink = (t, ph) => ((t + ph) % 3.6) < .13;
+
+// ---------------- nhân vật (bộ xương) ----------------
+const CH = [
+  { s: 1.4, ph: 0, shirt: '#e08a4a', tuft: true, skirt: false, tie: null,
+    x: [[0, -140, 'lin'], [3.0, 300], [9.6, 300], [11.2, 520], [19.7, 520], [20.7, 230], [24.7, 230], [26.4, 430], [30, 430]],
+    dir: [[0, 1], [19.5, -1], [20.9, 1]],
+    poses: [[0, 'phone'], [3.4, 'startle', .16], [4.2, 'think', .5, 'soft'], [10.0, 'idle', .4, 'soft'], [21.45, 'crouch', .2], [21.7, 'air', .15], [22.2, 'crouch', .1], [22.45, 'idle', .4, 'soft'], [27.35, 'crouch', .2], [27.6, 'air', .15], [28.2, 'crouch', .1], [28.45, 'cheer', .25]],
+    expr: [[0, 'neutral'], [3.4, 'shock'], [5.0, 'worry'], [11.5, 'smile'], [24.6, 'neutral'], [27.5, 'smile']],
+    hold: [[0, 4.4]] },
+  { s: 1.75, ph: 1.3, shirt: '#4f86c6', tuft: false, skirt: false, tie: null, glasses: true,
+    x: [[0, 640], [9.7, 640], [10.9, 930], [24.5, 930], [26.2, 600], [30, 600]],
+    dir: [[0, -1], [9.4, 1], [14.4, -1], [24.3, 1]],
+    poses: [[0, 'idle'], [5.2, 'scratch', .4], [7.6, 'idle', .5, 'soft'], [11.0, 'point', .35], [14.4, 'explain', .4], [19.6, 'pointUp', .35], [24.5, 'idle', .5, 'soft'], [26.2, 'tip', .4], [27.45, 'crouch', .2], [27.7, 'air', .15], [28.3, 'crouch', .1], [28.55, 'cheer', .25]],
+    expr: [[0, 'neutral'], [5.2, 'worry'], [9.6, 'smile'], [24.6, 'neutral'], [27.5, 'smile']], hold: [] },
+  { s: 1.55, ph: 2.6, shirt: '#5aa36b', tuft: false, skirt: false, tie: null, pony: true,
+    x: [[0, 1500], [5.0, 1500], [8.0, 980], [14.7, 980], [15.8, 770], [30, 770]],
+    dir: [[0, -1]],
+    poses: [[0, 'idle'], [8.2, 'shrug', .4], [9.6, 'idle', .5, 'soft'], [15.8, 'squat', .45], [18.0, 'idle', .3, 'soft'], [18.2, 'crouch', .2], [18.4, 'air', .15], [18.9, 'crouch', .1], [19.1, 'idle', .4, 'soft'], [27.55, 'crouch', .2], [27.8, 'air', .15], [28.4, 'crouch', .1], [28.65, 'cheer', .25]],
+    expr: [[0, 'neutral'], [8.2, 'worry'], [14.6, 'smile'], [18.4, 'shock'], [19.2, 'smile'], [27.5, 'smile']], hold: [] }
+];
+// bảng quãng đường tích lũy (để nhịp bước khớp quãng đường, chân không trượt)
+const DT = 1 / 240; CH.forEach(c => { c.dist = [0]; for (let i = 1; i <= 30 * 240; i++) c.dist.push(c.dist[i - 1] + Math.abs(track(c.x, i * DT) - track(c.x, (i - 1) * DT))); });
+const dirAt = (c, t) => { let v = c.dir[0][1], t0 = 0; for (const [tk, d] of c.dir) { if (t >= tk) { v = d; t0 = tk; } } let prev = c.dir[0][1]; for (const [tk, d] of c.dir) { if (tk < t0) prev = d; } return t0 > 0 ? lerp(prev, v, smooth(clamp((t - t0) / .2))) : v; };
+function airAt(who, t) { let h = 0; for (const j of TL.jumps) if (j.who === who) { const u = (t - j.t) / j.d; if (u > 0 && u < 1) h += j.h * 4 * u * (1 - u); } return h; }
+function stateOf(i, t) {
+  const c = CH[i], x = track(c.x, t), v = (track(c.x, t + .05) - track(c.x, t - .05)) / .1, sp = Math.abs(v);
+  const run = clamp((sp - 250) / 100), w = smooth(clamp((sp - 18) / 70));
+  const stride = (run > .5 ? 175 : 119) * c.s, ph = 2 * Math.PI * c.dist[Math.round(t / DT)] / stride;
+  let P = poseTrack(t, c.poses);
+  if (w > 0) { const wp = walkPose(ph, run > .5 ? 50 : 27, run > .5); P = mix(P, wp, w); }
+  // đang cầm điện thoại: giữ tay phải
+  if (c.hold.some(([a, b]) => t >= a && t < b)) { const hp = POSE.phone; P = { ...P, uaR: hp.uaR, faR: hp.faR, head: lerp(P.head, hp.head, .8) }; }
+  if (speaking(t, c.who ?? [0, 1, 2][i])) P = { ...P, faR: P.faR + 12 * Math.sin(t * 7 + c.ph), uaR: P.uaR + 5 * Math.sin(t * 7 + c.ph + 1), head: P.head + 4 * Math.sin(t * 9 + c.ph) };
+  return { x, dirS: dirAt(c, t), P, air: airAt(i, t), w, run, ph };
+}
+function limb(pts, w = 4.6) { return `<polyline points="${pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}" fill="none" stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`; }
+function exprAt(c, t) { let e = c.expr[0][1]; for (const [s, n] of c.expr) if (t >= s) e = n; return e; }
+function drawChar(i, t) {
+  const c = CH[i], S = stateOf(i, t), P = S.P, R = a => a * D2R;
+  const legH = (a, b) => 34 * Math.cos(R(a)) + 34 * Math.cos(R(b));
+  const hipH = Math.max(legH(P.thL, P.shL), legH(P.thR, P.shR)), hip = [0, -hipH];
+  const lean = R(P.lean), top = [hip[0] + 58 * Math.sin(lean), hip[1] - 58 * Math.cos(lean)];
+  const hA = P.lean + P.head, neck = [top[0] + 8 * Math.sin(R(hA * .6)), top[1] - 8 * Math.cos(R(hA * .6))];
+  const hc = [neck[0] + 34 * Math.sin(R(hA)), neck[1] - 34 * Math.cos(R(hA))];
+  const sh = [top[0] - 5 * Math.sin(lean), top[1] + 5 * Math.cos(lean)];
+  const lm = (p, a, l) => [p[0] + l * Math.sin(R(a)), p[1] + l * Math.cos(R(a))];
+  const leg = (th, sk) => { const k = lm(hip, th, 34), a = lm(k, sk, 34), ft = Math.max(0, -sk) * .7; return [hip, k, a, [a[0] + 12 * Math.cos(R(ft)), a[1] + 12 * Math.sin(R(ft))]]; };
+  const arm = (u, f) => { const e = lm(sh, u, 30); return [sh, e, lm(e, f, 28)]; };
+  const LL = leg(P.thL, P.shL), LR = leg(P.thR, P.shR), AL = arm(P.uaL, P.faL), AR = arm(P.uaR, P.faR);
+  const n = [Math.cos(lean), Math.sin(lean)];
+  let o = `<g transform="translate(${S.x} ${G - S.air}) scale(${c.s * S.dirS} ${c.s})">`;
+  o += `<ellipse cx="0" cy="${S.air / c.s + 3}" rx="${34 - S.air * .15}" ry="6" fill="#000" opacity="${.18 - S.air * .001}"/>`;
+  o += limb(LL) + limb(AL);
+  o += limb([hip, top], 4.6) + limb([top, neck], 4.6);
+  o += limb(LR);
+  o += `<g transform="translate(${hc[0]} ${hc[1]}) rotate(${hA})"><circle r="34" fill="#fff" stroke="${INK}" stroke-width="4.4"/>`;
+  if (c.pony) o += `<path d="M-26 -22 Q${-62 - 6 * Math.sin(t * 4)} ${-6 + 5 * Math.cos(t * 4)} ${-50 - 5 * Math.sin(t * 4)} 34" fill="none" stroke="${INK}" stroke-width="5" stroke-linecap="round"/><path d="M-30 -14 Q-10 -36 14 -30" fill="none" stroke="${INK}" stroke-width="5" stroke-linecap="round"/>`;
+  if (c.glasses) o += `<circle cx="9" cy="-4" r="9" fill="none" stroke="${INK}" stroke-width="2.6"/><circle cx="24" cy="-4" r="9" fill="none" stroke="${INK}" stroke-width="2.6"/><path d="M18 -4 L15 -4" stroke="${INK}" stroke-width="2.6"/>`;
+  if (c.tuft) o += `<path d="M-2 -33 Q-8 -52 6 -48" fill="none" stroke="${INK}" stroke-width="4.4" stroke-linecap="round"/>`;
+  const ex = exprAt(c, t), bl = blink(t, c.ph), ey = bl ? 1 : 3.4, talk = speaking(t, c.who);
+  o += `<ellipse cx="9" cy="-4" rx="3.4" ry="${ey}" fill="${INK}"/><ellipse cx="24" cy="-4" rx="3.4" ry="${ey}" fill="${INK}"/>`;
+  const mo = 15 + 0;
+  if (talk) o += `<ellipse cx="17" cy="${mo}" rx="5.5" ry="${2 + 5 * Math.abs(Math.sin(t * 11 + c.ph))}" fill="${INK}"/>`;
+  else if (ex === 'smile') o += `<path d="M8 ${mo - 2} Q17 ${mo + 8} 26 ${mo - 2}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>`;
+  else if (ex === 'shock') o += `<ellipse cx="17" cy="${mo + 1}" rx="5" ry="7" fill="none" stroke="${INK}" stroke-width="3.4"/>`;
+  else if (ex === 'worry') o += `<path d="M9 ${mo + 3} Q17 ${mo - 5} 26 ${mo + 3}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/><path d="M2 -14 L14 -19M30 -16 L20 -19" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`;
+  else o += `<path d="M10 ${mo} L25 ${mo}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>`;
+  o += '</g>';
+  o += limb(AR);
+  if (c.hold.some(([a, b]) => t >= a && t < b)) { const h = AR[2], a = P.faR; o += `<g transform="translate(${h[0]} ${h[1]}) rotate(${a - 90 + 15})"><rect x="-4" y="-16" width="9" height="20" rx="2" fill="#222"/><rect x="-2.5" y="-14" width="6" height="14" fill="#7fd6a8"/></g>`; }
+  o += `<circle cx="${AR[2][0]}" cy="${AR[2][1]}" r="3.4" fill="${INK}"/><circle cx="${AL[2][0]}" cy="${AL[2][1]}" r="3.4" fill="${INK}"/>`;
+  return o + '</g>';
+}
+window.stepTimes = () => { const out = []; for (let i = 0; i < 3; i++) { const c = CH[i]; let last = -1; for (let k = 0; k < 30 * 240; k++) { const t = k * DT, sp = Math.abs(track(c.x, t + .05) - track(c.x, t - .05)) / .1; if (sp < 30) { last = -1; continue; } const run = sp > 250, stride = (run ? 175 : 119) * c.s, cyc = c.dist[k] / stride, idx = Math.floor(cyc * 2 - .5 + 1e-6); if (idx !== last) { if (last !== -1) out.push({ t, who: i, run }); last = idx; } } } return out.sort((a, b) => a.t - b.t); };
+
+// ---------------- cảnh nền + hiệu ứng ----------------
+function bg(t) {
+  let b = '<rect width="1280" height="720" fill="#2f4d6b"/>';
+  for (const [x, y, w, sp] of [[150, 120, 160, 6], [620, 70, 200, 4], [980, 150, 140, 8]]) { const cx = ((x + sp * t) % 1500) - 110; b += `<g fill="#456a8d"><ellipse cx="${cx}" cy="${y}" rx="${w / 2}" ry="22"/><ellipse cx="${cx + 38}" cy="${y - 14}" rx="${w / 3}" ry="22"/></g>`; }
+  b += '<rect y="330" width="1280" height="130" fill="#243c55"/>';
+  for (const [x, w, h] of [[60, 90, 120], [170, 70, 170], [260, 100, 140], [900, 80, 150], [1000, 110, 190], [1130, 90, 130]]) b += `<rect x="${x}" y="${460 - h}" width="${w}" height="${h}" fill="#243c55"/>`;
+  b += '<rect y="460" width="1280" height="260" fill="#b98a4e"/><rect y="560" width="1280" height="160" fill="#a2773f"/>';
+  b += '<polygon points="470,250 640,190 810,250" fill="#e8dcc0"/><rect x="480" y="250" width="320" height="26" fill="#cdbf9a"/>' + [0, 1, 2, 3, 4].map(i => `<rect x="${500 + i * 62}" y="276" width="34" height="150" fill="#e8dcc0"/>`).join('') + '<rect x="470" y="426" width="340" height="34" fill="#cdbf9a"/>';
+  b += `<text x="640" y="244" font-family='${F}' font-size="30" font-weight="800" text-anchor="middle" fill="#2f4d6b">NGÂN HÀNG</text>`;
+  const atm = (t > 3.3 && t < 6.0) ? `<text x="955" y="378" font-family='${F}' font-size="22" font-weight="800" text-anchor="middle" fill="#c0392b">0 đ</text>` : '';
+  b += `<rect x="900" y="330" width="110" height="130" rx="8" fill="#5a6b7a"/><rect x="914" y="346" width="82" height="48" fill="#bfe3c8"/>${atm}<rect x="922" y="410" width="66" height="14" fill="#2d3a45"/>`;
+  // tree
+  b += `<g transform="translate(180 470)"><path d="M0 0 L-4 -90 Q-8 -110 -30 -118 M-4 -90 Q8 -110 26 -122" fill="none" stroke="#2a2a2a" stroke-width="7"/><ellipse cx="0" cy="-130" rx="110" ry="22" fill="#2f6b3a"/><ellipse cx="-50" cy="-118" rx="60" ry="14" fill="#2f6b3a"/></g>`;
+  return b;
+}
+function board(t) {
+  const P = [[1110, 400], [1150, 360], [1182, 380], [1232, 326]], p = clamp((t - 9.6) / 3.4); let tot = 0; const lens = [];
+  for (let i = 1; i < P.length; i++) { const l = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); lens.push(l); tot += l; }
+  let rem = p * tot, pts = [P[0]]; for (let i = 0; i < lens.length && rem > 0; i++) { const f = Math.min(1, rem / lens[i]); pts.push([lerp(P[i][0], P[i + 1][0], f), lerp(P[i][1], P[i + 1][1], f)]); rem -= lens[i]; }
+  return `<path d="M1170 560 L1150 420M1170 560 L1190 420" stroke="#3a2a1c" stroke-width="7"/><rect x="1090" y="290" width="170" height="130" rx="6" fill="#fff"/>` + (pts.length > 1 ? `<polyline points="${pts.map(q => q.join(',')).join(' ')}" fill="none" stroke="#2f9e63" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>` : '');
+}
+function jarAndCoins(t) {
+  let o = `<g><path d="M1100 600 L1108 548 L1152 548 L1160 600Z" fill="#9bc7d6" opacity=".85"/></g>`, n = 0;
+  TL.drops.forEach((d, k) => { if (t >= d + .6) n++; else if (t >= d) { const u = (t - d) / .6; o += `<ellipse cx="1130" cy="${lerp(-30, 592 - k * 8, easeOutBounce(u))}" rx="22" ry="7" fill="#f2c14e"/>`; } });
+  TL.coinHops.forEach((h, k) => { if (t >= h) n--; if (t >= h && t < h + .9) { const u = (t - h) / .9; o += `<ellipse cx="${lerp(1130, 700, u)}" cy="${lerp(556, 596, u) - 230 * 4 * u * (1 - u)}" rx="${lerp(22, 16, u)}" ry="7" fill="#f2c14e"/>`; } });
+  for (let i = 0; i < Math.max(0, n); i++) o += `<ellipse cx="1130" cy="${592 - i * 8}" rx="22" ry="7" fill="#f2c14e"/>`;
+  return o;
+}
+function wallet(t) {
+  if (t < TL.walletIn) return ''; const sc = easeOutBack(clamp((t - TL.walletIn) / .4)); let pulse = 0; for (const h of TL.coinHops) { const u = (t - h - .9) / .3; if (u > 0 && u < 1) pulse += Math.sin(u * Math.PI) * .18; }
+  let tag = ''; const tu = (t - 18.5) / 1.4; if (tu > 0 && tu < 1) tag = `<g opacity="${1 - tu}"><rect x="650" y="${470 - 60 * tu}" width="100" height="38" rx="19" fill="#fbf6ea"/><text x="700" y="${497 - 60 * tu}" font-family='${F}' font-size="24" font-weight="800" text-anchor="middle" fill="#2f9e63">+ lãi</text></g>`;
+  return `<g transform="translate(700 612) scale(${sc * (1 + pulse)} ${sc * (1 - pulse * .7)}) translate(-34 -42)"><rect width="68" height="42" rx="9" fill="#9a5a2c"/><path d="M0 12 Q34 28 68 12" fill="none" stroke="#6a3c1a" stroke-width="3"/><circle cx="52" cy="26" r="6" fill="#f2c14e"/></g>` + tag;
+}
+function cards(t) {
+  let o = ''; if (t >= TL.confetti) return o; [['Vay', 'coin', 430], ['Bảo hiểm', 'shield', 640], ['Đầu tư', 'up', 850]].forEach(([lab, ic, x], k) => {
+    const s0 = TL.cards[k]; if (t < s0) return; const sc = easeOutBack(clamp((t - s0) / .35)), bob = 5 * Math.sin((t - s0) * 3);
+    const icon = ic === 'coin' ? `<circle cy="-6" r="18" fill="#f2c14e"/><text y="2" font-family='${F}' font-size="22" font-weight="800" text-anchor="middle" fill="${INK}">$</text>` : ic === 'shield' ? `<path d="M0 -26 L18 -18 V-2 Q18 14 0 20 Q-18 14 -18 -2 V-18Z" fill="#4f86c6"/><path d="M-8 -4 L-2 3 L9 -10" fill="none" stroke="#fff" stroke-width="4"/>` : `<path d="M-18 8 L-5 -5 L4 2 L18 -16" fill="none" stroke="#2f9e63" stroke-width="5"/><polygon points="22,-20 9,-19 20,-7" fill="#2f9e63"/>`;
+    o += `<g transform="translate(${x} ${120 + bob}) scale(${sc})"><rect x="-56" y="-52" width="112" height="104" rx="12" fill="#fbf6ea" stroke="${INK}" stroke-width="3"/><g transform="translate(0 -10)">${icon}</g><text y="38" font-family='${F}' font-size="20" font-weight="800" text-anchor="middle" fill="${INK}">${lab}</text></g>`;
+  });
+  return o;
+}
+function confetti(t) {
+  const t0 = TL.confetti; if (t < t0) return ''; const cols = ['#e08a4a', '#4f86c6', '#f6e27a', '#f08aa6', '#5aa36b']; let o = '';
+  for (let i = 0; i < 70; i++) { const d = (i * 13 % 10) / 20, tt = t - t0 - d; if (tt < 0) continue; const x = (i * 97 % 1280) + 30 * Math.sin(tt * 3 + i), y = -20 + (140 + (i * 37 % 160)) * tt; if (y > 740) continue; o += `<rect x="${x}" y="${y}" width="12" height="7" fill="${cols[i % 5]}" transform="rotate(${i * 40 + tt * 220} ${x} ${y})" opacity="${t > 29.4 ? clamp((30 - t) / .6) : 1}"/>`; }
+  return o;
+}
+function endcard(t) {
+  if (t < TL.confetti) return ''; const u = clamp((t - TL.endcard) / .45), sc = easeOutBack(u) * .85;
+  let o = '';
+  if (u > 0) o += `<g transform="translate(640 150) scale(${sc * .72}) translate(-640 -330)"><rect x="360" y="180" width="560" height="300" rx="26" fill="#fbf6ea" stroke="${INK}" stroke-width="6"/><g transform="translate(398 214) scale(.8)"><rect width="240" height="240" rx="52" fill="#0E2A4D" stroke="#00C27A" stroke-width="4"/><rect x="62" y="62" width="116" height="26" rx="8" fill="#fff"/><rect x="107" y="62" width="26" height="116" rx="8" fill="#fff"/><polyline points="48,178 92,140 118,156 188,92" fill="none" stroke="#5CF2B0" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><polygon points="196,82 170,86 190,108" fill="#5CF2B0"/></g><text x="610" y="288" font-family='${F}' font-size="46" font-weight="800" fill="${INK}">TRUNG</text><text x="610" y="334" font-family='${F}' font-size="30" font-weight="800" fill="#2f9e63" letter-spacing="4">MONEY TECH</text><text x="640" y="452" font-family='${F}' font-size="28" font-weight="700" text-anchor="middle" fill="${INK}">Theo dõi để xem video tiếp theo</text></g>`;
+  return o;
+}
+function caption(t) {
+  const c = TL.captions.find(c => t >= c.s && t < c.e); if (!c) return '';
+  const age = t - c.s, typed = Math.floor(clamp((age - .25) * TL.cps, 0, 1e9)), shown = c.text.slice(0, Math.min(typed, c.text.length));
+  let size = 44, w = measure(c.text, size); while (w > 1040 && size > 26) { size -= 2; w = measure(c.text, size); }
+  const x0 = 640 - w / 2, barW = w + 90, sc = .6 + .4 * easeOutBack(clamp(age / .35)), al = clamp(age / .12);
+  let hl = ''; if (c.hl) { const i = c.text.indexOf(c.hl); if (i >= 0 && typed > i) { const pre = measure(c.text.slice(0, i), size), vis = measure(c.text.slice(i, Math.min(typed, i + c.hl.length)), size); hl = `<rect x="${x0 + pre - 6}" y="${662 - size * .85}" width="${vis + 12}" height="${size * 1.05}" rx="8" fill="#f6e27a"/>`; } }
+  const caret = (typed < c.text.length && Math.floor(t * 4) % 2 === 0) ? `<rect x="${x0 + measure(shown, size) + 4}" y="${662 - size * .8}" width="4" height="${size}" fill="${INK}"/>` : '';
+  return `<g opacity="${al}" transform="translate(640 662) scale(${sc}) translate(-640 -662)"><rect x="${640 - barW / 2}" y="640" width="${barW}" height="68" rx="34" fill="#fbf6ea" stroke="${INK}" stroke-width="4"/>${hl}<text x="${x0}" y="${662 + size * .33}" font-family='${F}' font-size="${size}" font-weight="800" fill="${INK}">${esc(shown)}</text>${caret}</g>`;
+}
+window.draw = (t) => {
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">${bg(t)}${board(t)}${jarAndCoins(t)}${wallet(t)}${cards(t)}`;
+  s += drawChar(0, t) + drawChar(1, t) + drawChar(2, t);
+  s += `${confetti(t)}${endcard(t)}${caption(t)}<text x="24" y="34" font-family='${F}' font-size="20" font-weight="700" fill="#fff" opacity=".8">Video minh họa · cần kiểm chứng nguồn</text></svg>`;
+  document.getElementById('root').innerHTML = s;
+};
+</script>
