@@ -29,7 +29,54 @@ def box_char(x, y, w, h, color, arms="up", mouth="o", extra=""):
         o += f'<path d="M{w*0.3} {h*0.5} Q{w*0.5} {h*0.68} {w*0.7} {h*0.5}" fill="none"/>'
     return o + extra + '</g>'
 
-def scene():
+
+def limb(pts, color, w=13):
+    p = " ".join(f"{a},{b}" for a, b in pts)
+    return (f'<polyline points="{p}" fill="none" stroke="{INK}" stroke-width="{w+8}"/>'
+            f'<polyline points="{p}" fill="none" stroke="{color}" stroke-width="{w}"/>')
+
+ARMS = {
+ "shock": ([(0,-122),(-36,-150),(-46,-192)], [(0,-122),(36,-150),(46,-192)]),
+ "point": ([(0,-122),(-22,-90),(-26,-62)], [(0,-122),(42,-132),(84,-152)]),
+ "think": ([(0,-122),(-22,-90),(-26,-62)], [(0,-122),(32,-98),(10,-140)]),
+}
+
+def stick(x, y, s, shirt, pants, hair, pose, expr, female=False, glasses=False, tie=None, skin="#f4d3b0"):
+    o = f'<g transform="translate({x} {y}) scale({s})" stroke-linecap="round" stroke-linejoin="round">'
+    # legs
+    o += limb([(0,-62),(-16,0)], pants, 12) + limb([(0,-62),(16,0)], pants, 12)
+    o += f'<ellipse cx="-20" cy="2" rx="14" ry="6" fill="{INK}"/><ellipse cx="20" cy="2" rx="14" ry="6" fill="{INK}"/>'
+    if female:
+        o += f'<path d="M-8 -78 L-34 -34 L34 -34 L8 -78Z" fill="{shirt}" stroke="{INK}" stroke-width="5"/>'
+    # torso
+    o += limb([(0,-122),(0,-66)], shirt, 22)
+    if tie: o += f'<path d="M-7 -122 L7 -122 L9 -84 L0 -74 L-9 -84Z" fill="{tie}" stroke="{INK}" stroke-width="3"/>'
+    # arms
+    for arm in ARMS[pose]:
+        o += limb(arm, shirt, 11) + f'<circle cx="{arm[-1][0]}" cy="{arm[-1][1]}" r="8" fill="{skin}" stroke="{INK}" stroke-width="4"/>'
+    # neck + head
+    o += f'<line x1="0" y1="-130" x2="0" y2="-124" stroke="{INK}" stroke-width="9"/>'
+    if female: o += f'<path d="M14 -178 Q52 -176 44 -128 Q40 -150 20 -158Z" fill="{hair}" stroke="{INK}" stroke-width="4"/>'
+    o += f'<circle cx="0" cy="-160" r="29" fill="{skin}" stroke="{INK}" stroke-width="5"/>'
+    o += f'<path d="M-29 -164 Q-30 -196 0 -192 Q30 -196 29 -164 Q16 -180 0 -180 Q-16 -180 -29 -164Z" fill="{hair}" stroke="{INK}" stroke-width="4"/>'
+    if glasses: o += f'<g fill="none" stroke="{INK}" stroke-width="3"><circle cx="-11" cy="-160" r="9"/><circle cx="11" cy="-160" r="9"/><path d="M-2 -160H2"/></g>'
+    if expr == "shock":
+        o += f'<circle cx="-11" cy="-160" r="3.5" fill="{INK}"/><circle cx="11" cy="-160" r="3.5" fill="{INK}"/><ellipse cx="0" cy="-143" rx="6" ry="8" fill="{INK}"/><path d="M-20 -176 Q-11 -183 -3 -176M3 -176 Q11 -183 20 -176" fill="none" stroke="{INK}" stroke-width="3"/>'
+    elif expr == "smile":
+        o += f'<circle cx="-11" cy="-160" r="3.5" fill="{INK}"/><circle cx="11" cy="-160" r="3.5" fill="{INK}"/><path d="M-12 -146 Q0 -134 12 -146" fill="none" stroke="{INK}" stroke-width="4"/>'
+    else:
+        o += f'<circle cx="-11" cy="-160" r="3.5" fill="{INK}"/><circle cx="11" cy="-160" r="3.5" fill="{INK}"/><path d="M-12 -174 L-2 -171M12 -176 Q18 -180 22 -174" fill="none" stroke="{INK}" stroke-width="3"/><path d="M-8 -143 L10 -146" fill="none" stroke="{INK}" stroke-width="4"/>'
+    return o + '</g>'
+
+def stick_characters():
+    o = stick(190, 500, 1.18, "#4f86c6", "#2f3b4f", "#2a1f16", "shock", "shock", glasses=True, tie="#d9703a")
+    o += stick(470, 500, 1.18, "#e08a4a", "#5c4a3a", "#2a1f16", "point", "smile", female=True)
+    o += stick(760, 500, 1.18, "#5aa36b", "#3b3b4a", "#5b3a22", "think", "think")
+    o += (f'<g stroke="{INK}" stroke-width="4"><circle cx="838" cy="270" r="8" fill="#fbf6ea"/><circle cx="858" cy="246" r="12" fill="#fbf6ea"/>'
+          f'<ellipse cx="900" cy="206" rx="46" ry="34" fill="#fbf6ea"/><text x="900" y="222" {F} font-size="44" font-weight="800" text-anchor="middle" fill="{INK}" stroke="none">?</text></g>')
+    return o
+
+def scene(kind="box"):
     b = '<rect width="1280" height="720" fill="#a9c498"/>'
     b += f'<g filter="url(#wob)" stroke="{INK}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">'
     # cork board + sticky notes
@@ -68,9 +115,12 @@ def scene():
     b += '</g>'
     # characters (outline wobble too)
     b += '<g filter="url(#wob)">'
-    b += box_char(120, 360, 130, 110, "#c8683a", "up", "o")
-    b += box_char(420, 330, 120, 140, "#b9d3e8", "both", "o")
-    b += box_char(700, 380, 110, 90, "#f2c14e", "down", "s")
+    if kind == "stick":
+        b += stick_characters()
+    else:
+        b += box_char(120, 360, 130, 110, "#c8683a", "up", "o")
+        b += box_char(420, 330, 120, 140, "#b9d3e8", "both", "o")
+        b += box_char(700, 380, 110, 90, "#f2c14e", "down", "s")
     b += '</g>'
     # caption bar
     b += f'<rect x="270" y="600" width="740" height="84" rx="42" fill="#fbf6ea" stroke="{INK}" stroke-width="5"/><text x="640" y="655" {F} font-size="46" font-weight="800" text-anchor="middle" fill="{INK}">Ví không thu phí, vậy ai trả tiền?</text>'
@@ -78,4 +128,5 @@ def scene():
 
 if __name__ == "__main__":
     os.makedirs("block-style", exist_ok=True)
-    open("block-style/01.svg", "w").write(scene()); render("block-style/01.svg", "block-style/01.png")
+    open("block-style/01.svg", "w").write(scene("box")); render("block-style/01.svg", "block-style/01.png")
+    open("block-style/02.svg", "w").write(scene("stick")); render("block-style/02.svg", "block-style/02.png")
