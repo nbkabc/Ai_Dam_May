@@ -54,18 +54,18 @@ const blink = (t, ph) => ((t + ph) % 3.6) < .13;
 
 // ---------------- nhân vật (bộ xương) ----------------
 const CH = [
-  { s: 1.4, ph: 0, shirt: '#e08a4a', tuft: true, skirt: false, tie: null,
+  { s: 1.4, ph: 0, shirt: '#e08a4a', tuft: true, skirt: false, tie: null, outfit: { skin: '#f4d3b0', sleeve: { color: '#e08a4a', len: .34, w: 14 }, pants: { color: '#3b5b8a', len: .8, w: 13 }, shoes: '#f4f4f0', hat: { color: '#d9483b' } },
     x: [[0, -140, 'lin'], [3.0, 300], [9.6, 300], [11.2, 520], [19.7, 520], [20.7, 230], [24.7, 230], [26.4, 430], [30, 430]],
     dir: [[0, 1], [19.5, -1], [20.9, 1]],
     poses: [[0, 'phone'], [3.4, 'startle', .16], [4.2, 'think', .5, 'soft'], [10.0, 'idle', .4, 'soft'], [21.45, 'crouch', .2], [21.7, 'air', .15], [22.2, 'crouch', .1], [22.45, 'idle', .4, 'soft'], [27.35, 'crouch', .2], [27.6, 'air', .15], [28.2, 'crouch', .1], [28.45, 'cheer', .25]],
     expr: [[0, 'neutral'], [3.4, 'shock'], [5.0, 'worry'], [11.5, 'smile'], [24.6, 'neutral'], [27.5, 'smile']],
     hold: [[0, 4.4]] },
-  { s: 1.75, ph: 1.3, shirt: '#4f86c6', tuft: false, skirt: false, tie: '#d9703a',
+  { s: 1.75, ph: 1.3, shirt: '#4f86c6', tuft: false, skirt: false, tie: '#d9703a', outfit: { skin: '#f4d3b0', sleeve: { color: '#27456f', len: .97, w: 12, cuff: '#f1f1ee' }, pants: { color: '#2b3a55', len: 1, w: 13 }, shoes: '#3a2a1c', coat: { color: '#27456f' }, glasses: true },
     x: [[0, 640], [9.7, 640], [10.9, 930], [24.5, 930], [26.2, 600], [30, 600]],
     dir: [[0, -1], [9.4, 1], [14.4, -1], [24.3, 1]],
     poses: [[0, 'idle'], [5.2, 'scratch', .4], [7.6, 'idle', .5, 'soft'], [11.0, 'point', .35], [14.4, 'explain', .4], [19.6, 'pointUp', .35], [24.5, 'idle', .5, 'soft'], [26.2, 'tip', .4], [27.45, 'crouch', .2], [27.7, 'air', .15], [28.3, 'crouch', .1], [28.55, 'cheer', .25]],
     expr: [[0, 'neutral'], [5.2, 'worry'], [9.6, 'smile'], [24.6, 'neutral'], [27.5, 'smile']], hold: [] },
-  { s: 1.55, ph: 2.6, shirt: '#5aa36b', tuft: false, skirt: true, tie: null,
+  { s: 1.55, ph: 2.6, shirt: '#5aa36b', tuft: false, skirt: true, tie: null, outfit: { skin: '#f4d3b0', sleeve: { color: '#5aa36b', len: .72, w: 11 }, pants: null, skirt: { color: '#e9b44c' }, shoes: '#b5483a', hair: { type: 'pony', color: '#3a2a1c' }, bag: { color: '#8a5a3a' } },
     x: [[0, 1500], [5.0, 1500], [8.0, 980], [14.7, 980], [15.8, 770], [30, 770]],
     dir: [[0, -1]],
     poses: [[0, 'idle'], [8.2, 'shrug', .4], [9.6, 'idle', .5, 'soft'], [15.8, 'squat', .45], [18.0, 'idle', .3, 'soft'], [18.2, 'crouch', .2], [18.4, 'air', .15], [18.9, 'crouch', .1], [19.1, 'idle', .4, 'soft'], [27.55, 'crouch', .2], [27.8, 'air', .15], [28.4, 'crouch', .1], [28.65, 'cheer', .25]],
@@ -88,41 +88,69 @@ function stateOf(i, t) {
 }
 function limb(pts, w = 4.6) { return `<polyline points="${pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}" fill="none" stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`; }
 function exprAt(c, t) { let e = c.expr[0][1]; for (const [s, n] of c.expr) if (t >= s) e = n; return e; }
+
+const OUT = "#1a1a1a";
+const cap = (pts, w, col) => { const p = pts.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '); return `<polyline points="${p}" fill="none" stroke="${OUT}" stroke-width="${w + 3.4}" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${p}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`; };
+const mixp = (p, q, u) => [lerp(p[0], q[0], u), lerp(p[1], q[1], u)];
 function drawChar(i, t) {
-  const c = CH[i], S = stateOf(i, t), P = S.P, R = a => a * D2R;
+  const c = CH[i], S = stateOf(i, t), P = S.P, R = a => a * D2R, O = c.outfit, SK = O.skin || '#f4d3b0';
   const legH = (a, b) => 34 * Math.cos(R(a)) + 34 * Math.cos(R(b));
   const hipH = Math.max(legH(P.thL, P.shL), legH(P.thR, P.shR)), hip = [0, -hipH];
-  const lean = R(P.lean), top = [hip[0] + 58 * Math.sin(lean), hip[1] - 58 * Math.cos(lean)];
+  const lean = R(P.lean), up = [Math.sin(lean), -Math.cos(lean)], top = [hip[0] + 58 * up[0], hip[1] + 58 * up[1]];
   const hA = P.lean + P.head, neck = [top[0] + 8 * Math.sin(R(hA * .6)), top[1] - 8 * Math.cos(R(hA * .6))];
   const hc = [neck[0] + 34 * Math.sin(R(hA)), neck[1] - 34 * Math.cos(R(hA))];
-  const sh = [top[0] - 5 * Math.sin(lean), top[1] + 5 * Math.cos(lean)];
+  const sh = [top[0] - 5 * up[0] * -1 * -1 - 0, top[1] + 5 * Math.cos(lean)];
   const lm = (p, a, l) => [p[0] + l * Math.sin(R(a)), p[1] + l * Math.cos(R(a))];
-  const leg = (th, sk) => { const k = lm(hip, th, 34), a = lm(k, sk, 34), ft = Math.max(0, -sk) * .7; return [hip, k, a, [a[0] + 12 * Math.cos(R(ft)), a[1] + 12 * Math.sin(R(ft))]]; };
+  const leg = (th, sk) => { const k = lm(hip, th, 34), a = lm(k, sk, 34), ft = Math.max(0, -sk) * .7; return [hip, k, a, [a[0] + 13 * Math.cos(R(ft)), a[1] + 13 * Math.sin(R(ft))]]; };
   const arm = (u, f) => { const e = lm(sh, u, 30); return [sh, e, lm(e, f, 28)]; };
   const LL = leg(P.thL, P.shL), LR = leg(P.thR, P.shR), AL = arm(P.uaL, P.faL), AR = arm(P.uaR, P.faR);
   const n = [Math.cos(lean), Math.sin(lean)];
+  const dress = (L) => { // quần + giày bám theo xương chân
+    let o = limb(L.slice(0, 3));                                   // chân trần (nét mảnh)
+    if (O.pants) { const len = O.pants.len; const e = len >= 1 ? L[2] : mixp(L[0], L[1], len); const pts = len >= 1 ? [L[0], L[1], mixp(L[1], L[2], .96)] : [L[0], e]; o += cap(pts, O.pants.w, O.pants.color); }
+    o += cap([mixp(L[2], L[3], 0), L[3]], 10, O.shoes);
+    return o;
+  };
+  const dressArm = (A, hand) => { let o = limb(A); const sl = O.sleeve; o += cap([A[0], A[1], mixp(A[1], A[2], sl.len)], sl.w, sl.color);
+    return o + `<circle cx="${A[2][0]}" cy="${A[2][1]}" r="4.6" fill="${SK}" stroke="${OUT}" stroke-width="1.8"/>`; };
   let o = `<g transform="translate(${S.x} ${G - S.air}) scale(${c.s * S.dirS} ${c.s})">`;
-  o += `<ellipse cx="0" cy="${S.air / c.s + 3}" rx="${34 - S.air * .15}" ry="6" fill="#000" opacity="${.18 - S.air * .001}"/>`;
-  o += limb(LL) + limb(AL);
-  if (c.skirt) o += `<polygon points="${hip[0] - n[0] * 16},${hip[1] - n[1] * 16 - 6} ${hip[0] + n[0] * 16},${hip[1] + n[1] * 16 - 6} ${hip[0] + 30},${hip[1] + 30} ${hip[0] - 30},${hip[1] + 30}" fill="${c.shirt}"/>`;
-  o += `<polygon points="${hip[0] - n[0] * 16},${hip[1] - n[1] * 16} ${hip[0] + n[0] * 16},${hip[1] + n[1] * 16} ${top[0] + n[0] * 24},${top[1] + n[1] * 24} ${top[0] - n[0] * 24},${top[1] - n[1] * 24}" fill="${c.shirt}"/>`;
-  o += limb([hip, top], 4.6) + limb([top, neck], 4.6);
-  if (c.tie) o += `<polygon points="${top[0] - 4},${top[1] + 2} ${top[0] + 4},${top[1] + 2} ${top[0] + 6 - 4 * Math.sin(lean)},${top[1] + 30} ${top[0]},${top[1] + 38} ${top[0] - 6},${top[1] + 30}" fill="${c.tie}"/>`;
-  o += limb(LR);
-  o += `<g transform="translate(${hc[0]} ${hc[1]}) rotate(${hA})"><circle r="34" fill="#fff" stroke="${INK}" stroke-width="4.4"/>`;
-  if (c.tuft) o += `<path d="M-2 -33 Q-8 -52 6 -48" fill="none" stroke="${INK}" stroke-width="4.4" stroke-linecap="round"/>`;
+  o += `<ellipse cx="0" cy="${S.air / c.s + 3}" rx="${34 - S.air * .15}" ry="6" fill="#000" opacity="${Math.max(0.04, .18 - S.air * .001)}"/>`;
+  o += dress(LL) + dress(LR);
+  o += dressArm(AL);
+  // váy xòe theo bước chân
+  if (O.skirt) { const w1 = 22, hl = [hip[0] - w1 + 16 * Math.sin(R(P.thL)), hip[1] + 40], hr = [hip[0] + w1 + 16 * Math.sin(R(P.thR)), hip[1] + 40];
+    o += `<path d="M${hip[0] - n[0] * 15} ${hip[1] - n[1] * 15 - 4} L${hl[0]} ${hl[1]} Q${hip[0]} ${hip[1] + 48 + 4 * Math.cos(t * 6)} ${hr[0]} ${hr[1]} L${hip[0] + n[0] * 15} ${hip[1] + n[1] * 15 - 4}Z" fill="${O.skirt.color}" stroke="${OUT}" stroke-width="2.6" stroke-linejoin="round"/>`; }
+  // thân: áo / áo khoác
+  const dn = [-up[0], -up[1]], ext = O.coat ? 18 : 0;
+  const poly = [[hip[0] - n[0] * 16 + dn[0] * ext, hip[1] - n[1] * 16 + dn[1] * ext], [hip[0] + n[0] * 16 + dn[0] * ext, hip[1] + n[1] * 16 + dn[1] * ext], [top[0] + n[0] * 24, top[1] + n[1] * 24], [top[0] - n[0] * 24, top[1] - n[1] * 24]];
+  o += `<polygon points="${poly.map(p => p.join(',')).join(' ')}" fill="${O.coat ? O.coat.color : c.shirt}" stroke="${OUT}" stroke-width="2.6" stroke-linejoin="round"/>`;
+  o += limb([top, neck], 4.6);
+  if (O.coat) { // cổ áo sơ mi + cà vạt + khuy
+    o += `<polygon points="${top[0] + n[0] * 9},${top[1] + n[1] * 9} ${top[0] - n[0] * 9},${top[1] - n[1] * 9} ${top[0] + dn[0] * 30},${top[1] + dn[1] * 30}" fill="#f1f1ee" stroke="${OUT}" stroke-width="2"/>`;
+    if (c.tie) o += `<polygon points="${top[0] - 3},${top[1] + 4} ${top[0] + 3},${top[1] + 4} ${top[0] + dn[0] * 24 + 4},${top[1] + dn[1] * 24 + 4} ${top[0] + dn[0] * 30},${top[1] + dn[1] * 30 + 6} ${top[0] + dn[0] * 24 - 4},${top[1] + dn[1] * 24 + 4}" fill="${c.tie}" stroke="${OUT}" stroke-width="1.6"/>`;
+    for (const k of [34, 46]) o += `<circle cx="${top[0] + dn[0] * k + n[0] * 5}" cy="${top[1] + dn[1] * k + n[1] * 5}" r="1.8" fill="${OUT}"/>`;
+  } else if (c.tie) o += `<polygon points="${top[0] - 4},${top[1] + 2} ${top[0] + 4},${top[1] + 2} ${top[0] + 6},${top[1] + 30} ${top[0]},${top[1] + 38} ${top[0] - 6},${top[1] + 30}" fill="${c.tie}"/>`;
+  // đầu
+  o += `<g transform="translate(${hc[0]} ${hc[1]}) rotate(${hA})">`;
+  if (O.hair && O.hair.type === 'pony') o += `<path d="M-30 -14 Q${-66 - 6 * Math.sin(t * 4)} ${-4 + 4 * Math.cos(t * 4)} ${-54 - 4 * Math.sin(t * 4)} ${30} Q-42 4 -28 2Z" fill="${O.hair.color}" stroke="${OUT}" stroke-width="2.6"/>`;
+  o += `<circle r="34" fill="#fff" stroke="${INK}" stroke-width="4.4"/>`;
+  if (O.hair) o += `<path d="M-33 -6 A34 34 0 0 1 33 -6 Q12 -26 -33 -6Z" fill="${O.hair.color}" stroke="${OUT}" stroke-width="2.4"/>`;
+  if (O.hair && O.hair.type === 'bun') o += `<circle cx="-12" cy="-38" r="12" fill="${O.hair.color}" stroke="${OUT}" stroke-width="2.6"/>`;
+  if (O.hat) o += `<path d="M-34 -6 A35 35 0 0 1 34 -6Z" fill="${O.hat.color}" stroke="${OUT}" stroke-width="3"/><path d="M12 -12 Q46 -16 50 -4 L12 -4Z" fill="${O.hat.color}" stroke="${OUT}" stroke-width="3" stroke-linejoin="round"/>`;
+  if (c.tuft && !O.hat) o += `<path d="M-2 -33 Q-8 -52 6 -48" fill="none" stroke="${INK}" stroke-width="4.4" stroke-linecap="round"/>`;
   const ex = exprAt(c, t), bl = blink(t, c.ph), ey = bl ? 1 : 3.4, talk = speaking(t, c.who);
   o += `<ellipse cx="9" cy="-4" rx="3.4" ry="${ey}" fill="${INK}"/><ellipse cx="24" cy="-4" rx="3.4" ry="${ey}" fill="${INK}"/>`;
-  const mo = 15 + 0;
+  if (O.glasses) o += `<circle cx="9" cy="-4" r="9" fill="none" stroke="${OUT}" stroke-width="2.4"/><circle cx="24" cy="-4" r="9" fill="none" stroke="${OUT}" stroke-width="2.4"/><path d="M18 -4 L15 -4" stroke="${OUT}" stroke-width="2.4"/>`;
+  const mo = 15;
   if (talk) o += `<ellipse cx="17" cy="${mo}" rx="5.5" ry="${2 + 5 * Math.abs(Math.sin(t * 11 + c.ph))}" fill="${INK}"/>`;
   else if (ex === 'smile') o += `<path d="M8 ${mo - 2} Q17 ${mo + 8} 26 ${mo - 2}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>`;
   else if (ex === 'shock') o += `<ellipse cx="17" cy="${mo + 1}" rx="5" ry="7" fill="none" stroke="${INK}" stroke-width="3.4"/>`;
   else if (ex === 'worry') o += `<path d="M9 ${mo + 3} Q17 ${mo - 5} 26 ${mo + 3}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/><path d="M2 -14 L14 -19M30 -16 L20 -19" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`;
   else o += `<path d="M10 ${mo} L25 ${mo}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>`;
   o += '</g>';
-  o += limb(AR);
+  o += dressArm(AR);
+  if (O.bag) { const h = AR[2]; o += `<path d="M${h[0] - 7} ${h[1]} L${h[0] - 9} ${h[1] + 14}M${h[0] + 7} ${h[1]} L${h[0] + 9} ${h[1] + 14}" stroke="${OUT}" stroke-width="2.4" fill="none"/><rect x="${h[0] - 14}" y="${h[1] + 12}" width="28" height="20" rx="4" fill="${O.bag.color}" stroke="${OUT}" stroke-width="2.6"/>`; }
   if (c.hold.some(([a, b]) => t >= a && t < b)) { const h = AR[2], a = P.faR; o += `<g transform="translate(${h[0]} ${h[1]}) rotate(${a - 90 + 15})"><rect x="-4" y="-16" width="9" height="20" rx="2" fill="#222"/><rect x="-2.5" y="-14" width="6" height="14" fill="#7fd6a8"/></g>`; }
-  o += `<circle cx="${AR[2][0]}" cy="${AR[2][1]}" r="3.4" fill="${INK}"/><circle cx="${AL[2][0]}" cy="${AL[2][1]}" r="3.4" fill="${INK}"/>`;
   return o + '</g>';
 }
 window.stepTimes = () => { const out = []; for (let i = 0; i < 3; i++) { const c = CH[i]; let last = -1; for (let k = 0; k < 30 * 240; k++) { const t = k * DT, sp = Math.abs(track(c.x, t + .05) - track(c.x, t - .05)) / .1; if (sp < 30) { last = -1; continue; } const run = sp > 250, stride = (run ? 175 : 119) * c.s, cyc = c.dist[k] / stride, idx = Math.floor(cyc * 2 - .5 + 1e-6); if (idx !== last) { if (last !== -1) out.push({ t, who: i, run }); last = idx; } } } return out.sort((a, b) => a.t - b.t); };
