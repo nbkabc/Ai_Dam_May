@@ -1,0 +1,273 @@
+{
+ "fps": 24,
+ "dur": 72.84,
+ "cps": 18,
+ "ground": 612,
+ "scenes": {
+  "office": {
+   "s": 0.6,
+   "e": 8.31
+  },
+  "notwhy": {
+   "s": 8.31,
+   "e": 12.13
+  },
+  "friends": {
+   "s": 12.13,
+   "e": 14.17
+  },
+  "boba": {
+   "s": 14.17,
+   "e": 20.03
+  },
+  "cafe": {
+   "s": 20.03,
+   "e": 22.07
+  },
+  "travel": {
+   "s": 22.07,
+   "e": 25.17
+  },
+  "lodge": {
+   "s": 25.17,
+   "e": 32.08
+  },
+  "night": {
+   "s": 32.08,
+   "e": 36.43
+  },
+  "morning": {
+   "s": 36.43,
+   "e": 41.55
+  },
+  "price": {
+   "s": 41.55,
+   "e": 44.38
+  },
+  "wallet": {
+   "s": 44.38,
+   "e": 48.98
+  },
+  "leave": {
+   "s": 48.98,
+   "e": 53.85
+  },
+  "realize": {
+   "s": 53.85,
+   "e": 60.77
+  },
+  "noname": {
+   "s": 60.77,
+   "e": 67.42
+  },
+  "end": {
+   "s": 67.42,
+   "e": 71.24
+  }
+ },
+ "order": [
+  "office",
+  "notwhy",
+  "friends",
+  "boba",
+  "cafe",
+  "travel",
+  "lodge",
+  "night",
+  "morning",
+  "price",
+  "wallet",
+  "leave",
+  "realize",
+  "noname",
+  "end"
+ ],
+ "captions": [
+  {
+   "s": 0.6,
+   "e": 3.69,
+   "text": "Giới trẻ bây giờ có một chuyện nghe vậy mà thật,",
+   "hl": "nghe vậy mà thật"
+  },
+  {
+   "s": 3.69,
+   "e": 5.74,
+   "text": "lương không cao, việc cũng chẳng nhẹ,",
+   "hl": "lương không cao"
+  },
+  {
+   "s": 5.74,
+   "e": 8.31,
+   "text": "vậy mà vẫn ở lại công ty rất lâu.",
+   "hl": "rất lâu"
+  },
+  {
+   "s": 8.31,
+   "e": 10.08,
+   "text": "Không phải vì mê công việc,",
+   "hl": "mê công việc"
+  },
+  {
+   "s": 10.08,
+   "e": 12.13,
+   "text": "cũng không phải vì không dám đi.",
+   "hl": "không dám đi"
+  },
+  {
+   "s": 12.13,
+   "e": 14.17,
+   "text": "Mà vì ở đó có tụi bạn.",
+   "hl": "có tụi bạn"
+  },
+  {
+   "s": 14.17,
+   "e": 16.74,
+   "text": "Trên công ty thì rủ nhau đặt trà sữa,",
+   "hl": "trà sữa"
+  },
+  {
+   "s": 16.74,
+   "e": 18.25,
+   "text": "chia nhau đồ ăn vặt,",
+   "hl": "đồ ăn vặt"
+  },
+  {
+   "s": 18.25,
+   "e": 20.03,
+   "text": "ngồi tán dóc tới giờ về.",
+   "hl": "tán dóc"
+  },
+  {
+   "s": 20.03,
+   "e": 22.07,
+   "text": "Cuối tuần hẹn nhau đi cà phê,",
+   "hl": "cà phê"
+  },
+  {
+   "s": 22.07,
+   "e": 25.17,
+   "text": "tới dịp lễ còn rủ nhau đi chơi, đi du lịch.",
+   "hl": "đi du lịch"
+  },
+  {
+   "s": 25.17,
+   "e": 26.95,
+   "text": "Nhiều bạn đi làm xa nhà,",
+   "hl": "xa nhà"
+  },
+  {
+   "s": 26.95,
+   "e": 29.25,
+   "text": "ra khỏi công ty là về phòng trọ,",
+   "hl": "phòng trọ"
+  },
+  {
+   "s": 29.25,
+   "e": 32.08,
+   "text": "nên công ty thành nơi có người để nói chuyện.",
+   "hl": "có người để nói chuyện"
+  },
+  {
+   "s": 32.08,
+   "e": 34.92,
+   "text": "Có đợt người ta rủ qua chỗ lương cao hơn,",
+   "hl": "lương cao hơn"
+  },
+  {
+   "s": 34.92,
+   "e": 36.43,
+   "text": "bạn ngồi nghĩ cả đêm,",
+   "hl": "nghĩ cả đêm"
+  },
+  {
+   "s": 36.43,
+   "e": 40.05,
+   "text": "rồi sáng ra thấy ly trà sữa ai đó để sẵn trên bàn,",
+   "hl": "ly trà sữa"
+  },
+  {
+   "s": 40.05,
+   "e": 41.55,
+   "text": "là thôi, ở lại.",
+   "hl": "ở lại"
+  },
+  {
+   "s": 41.55,
+   "e": 44.38,
+   "text": "Cái giá của chuyện đó thì ít ai nói ra.",
+   "hl": "Cái giá"
+  },
+  {
+   "s": 44.38,
+   "e": 45.88,
+   "text": "Cuối tháng vẫn chật,",
+   "hl": "vẫn chật"
+  },
+  {
+   "s": 45.88,
+   "e": 48.98,
+   "text": "mà ly trà sữa nào, chuyến đi nào cũng tốn tiền.",
+   "hl": "tốn tiền"
+  },
+  {
+   "s": 48.98,
+   "e": 51.28,
+   "text": "Và khi mấy người đó lần lượt nghỉ,",
+   "hl": "lần lượt nghỉ"
+  },
+  {
+   "s": 51.28,
+   "e": 53.85,
+   "text": "cái lý do để ở lại cũng đi theo.",
+   "hl": "đi theo"
+  },
+  {
+   "s": 53.85,
+   "e": 55.89,
+   "text": "Lúc đó nhiều bạn mới giật mình,",
+   "hl": "giật mình"
+  },
+  {
+   "s": 55.89,
+   "e": 58.99,
+   "text": "hóa ra mình gắn bó với những người ngồi cạnh mình,",
+   "hl": "gắn bó với những người ngồi cạnh"
+  },
+  {
+   "s": 58.99,
+   "e": 60.77,
+   "text": "chứ đâu phải với công ty.",
+   "hl": "đâu phải với công ty"
+  },
+  {
+   "s": 60.77,
+   "e": 62.55,
+   "text": "Chuyện này chẳng có đúng sai,",
+   "hl": "chẳng có đúng sai"
+  },
+  {
+   "s": 62.55,
+   "e": 65.12,
+   "text": "chỉ là nhiều bạn trẻ đang sống như vậy,",
+   "hl": "đang sống như vậy"
+  },
+  {
+   "s": 65.12,
+   "e": 67.42,
+   "text": "mà chưa ai gọi nó ra thành tên.",
+   "hl": "gọi nó ra thành tên"
+  },
+  {
+   "s": 67.42,
+   "e": 69.2,
+   "text": "Nếu bạn thấy mình trong đó,",
+   "hl": "thấy mình trong đó"
+  },
+  {
+   "s": 69.2,
+   "e": 71.24,
+   "text": "kể mình nghe ở bình luận nha.",
+   "hl": "kể mình nghe"
+  }
+ ]
+}

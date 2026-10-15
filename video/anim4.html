@@ -1,0 +1,427 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#fff"><div id="root" style="width:1280px;height:720px"></div>
+<script>
+const INK = "#1a1a1a", F = 'Arial,"Liberation Sans",Helvetica,sans-serif', D2R = Math.PI / 180, TL = window.TL, G = TL.ground;
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, u) => a + (b - a) * u;
+const smooth = u => u * u * (3 - 2 * u);
+const backE = (u, c1 = .9) => { const c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); };
+const easeOutBounce = u => { const n = 7.5625, d = 2.75; if (u < 1 / d) return n * u * u; if (u < 2 / d) { u -= 1.5 / d; return n * u * u + .75; } if (u < 2.5 / d) { u -= 2.25 / d; return n * u * u + .9375; } u -= 2.625 / d; return n * u * u + .984375; };
+const easeOutBack = u => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); };
+const ctx = document.createElement('canvas').getContext('2d');
+const measure = (s, size) => { ctx.font = `800 ${size}px ${F}`; return ctx.measureText(s).width; };
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+// ---------------- thư viện tư thế (độ; 0 = thẳng xuống, + = hướng về phía trước) ----------------
+const POSE = {
+  idle:    { lean: 2, head: 0, uaL: 8, faL: 18, uaR: -6, faR: 10, thL: 7, shL: 2, thR: -7, shR: -2 },
+  phone:   { lean: 6, head: 16, uaL: 6, faL: 16, uaR: 38, faR: 112, thL: 3, shL: 1, thR: -3, shR: -1 },
+  startle: { lean: -16, head: -10, uaL: 140, faL: 165, uaR: 150, faR: 172, thL: 16, shL: -8, thR: -10, shR: -28 },
+  think:   { lean: 3, head: 6, uaL: 6, faL: 16, uaR: 62, faR: 196, thL: 3, shL: 1, thR: -3, shR: -1 },
+  scratch: { lean: 2, head: 4, uaL: 6, faL: 16, uaR: 112, faR: 205, thL: 3, shL: 1, thR: -3, shR: -1 },
+  shrug:   { lean: -2, head: 12, uaL: 35, faL: 100, uaR: 35, faR: 100, thL: 3, shL: 1, thR: -3, shR: -1 },
+  point:   { lean: 5, head: 0, uaL: 6, faL: 16, uaR: 82, faR: 90, thL: 6, shL: 3, thR: -6, shR: -3 },
+  pointUp: { lean: 2, head: -8, uaL: 6, faL: 16, uaR: 128, faR: 136, thL: 3, shL: 1, thR: -3, shR: -1 },
+  explain: { lean: 3, head: 4, uaL: 40, faL: 80, uaR: 52, faR: 86, thL: 4, shL: 2, thR: -4, shR: -2 },
+  tip:     { lean: 0, head: 2, uaL: 6, faL: 16, uaR: 150, faR: 172, thL: 3, shL: 1, thR: -3, shR: -1 },
+  squat:   { lean: 26, head: -12, uaL: 24, faL: 12, uaR: 40, faR: 16, thL: 68, shL: -12, thR: 60, shR: -18 },
+  crouch:  { lean: 18, head: -6, uaL: -30, faL: -10, uaR: -22, faR: -4, thL: 40, shL: -24, thR: 36, shR: -30 },
+  cheer:   { lean: -6, head: -10, uaL: 160, faL: 178, uaR: 150, faR: 175, thL: 8, shL: -4, thR: -4, shR: -12 },
+  air:     { lean: -4, head: -8, uaL: 150, faL: 170, uaR: 160, faR: 178, thL: 26, shL: -34, thR: 10, shR: -40 },
+  stern:   { lean: 0, head: 0, uaL: 4, faL: 12, uaR: -2, faR: 8, thL: 2, shL: 0, thR: -2, shR: 0 }
+};
+const mix = (a, b, u) => { const o = {}; for (const k in a) o[k] = lerp(a[k], b[k], u); return o; };
+function poseTrack(t, keys) {
+  let i = 0; while (i + 1 < keys.length && t >= keys[i + 1][0]) i++;
+  const cur = POSE[keys[i][1]], prev = POSE[keys[Math.max(0, i - 1)][1]];
+  const dur = keys[i][2] || .34, u = i === 0 ? 1 : clamp((t - keys[i][0]) / dur);
+  return mix(prev, cur, keys[i][3] === 'soft' ? smooth(u) : backE(u, .7));
+}
+function walkPose(ph, amp, run) {
+  const sL = Math.sin(ph), sR = Math.sin(ph + Math.PI), cL = Math.cos(ph), cR = Math.cos(ph + Math.PI);
+  const bend = (c) => 8 + (run ? 62 : 40) * Math.max(0, c);
+  const thL = amp * sL, thR = amp * sR;
+  const arm = (run ? 1.25 : .85) * amp;
+  return { lean: run ? 15 : 5, head: run ? -6 : 0, thL, shL: thL - bend(cL), thR, shR: thR - bend(cR),
+    uaL: -arm * sL * .9 + 4, faL: -arm * sL * .9 + 4 + (run ? 78 : 26), uaR: arm * sL * .9 + 4, faR: arm * sL * .9 + 4 + (run ? 78 : 26) };
+}
+function track(keys, t) { // [[t,v,ease?],...] -> nội suy mượt
+  if (t <= keys[0][0]) return keys[0][1]; let i = 0; while (i + 1 < keys.length && t >= keys[i + 1][0]) i++;
+  if (i === keys.length - 1) return keys[i][1]; const [t0, v0] = keys[i], [t1, v1] = keys[i + 1], u = clamp((t - t0) / (t1 - t0));
+  return lerp(v0, v1, keys[i][2] === 'lin' ? u : smooth(u));
+}
+
+Object.assign(POSE, {
+  type:  { lean: 9, head: 14, uaL: 52, faL: 84, uaR: 58, faR: 88, thL: 3, shL: 1, thR: -3, shR: -1 },
+  wave:  { lean: -2, head: -4, uaL: 6, faL: 16, uaR: 150, faR: 168, thL: 3, shL: 1, thR: -3, shR: -1 },
+  slump: { lean: 14, head: 24, uaL: 2, faL: 6, uaR: -4, faR: 2, thL: 4, shL: 2, thR: -4, shR: -2 },
+  toast: { lean: 0, head: -4, uaL: 6, faL: 16, uaR: 96, faR: 150, thL: 3, shL: 1, thR: -3, shR: -1 },
+  carry: { lean: 4, head: 6, uaL: 62, faL: 82, uaR: 62, faR: 82, thL: 3, shL: 1, thR: -3, shR: -1 },
+  hold:  { lean: 3, head: 0, uaL: 6, faL: 16, uaR: 58, faR: 104, thL: 3, shL: 1, thR: -3, shR: -1 },
+  bag:   { lean: 3, head: 0, uaL: 6, faL: 16, uaR: 4, faR: 10, thL: 3, shL: 1, thR: -3, shR: -1 }
+});
+const blink = (t, ph) => ((t + ph) % 3.6) < .13;
+const caps = TL.captions;
+const L = id => TL.scenes[id];
+const capsOf = id => caps.filter(c => c.s >= L(id).s - .01 && c.s < L(id).e - .01).map(c => c.s - L(id).s);
+const cs = {}; TL.order.forEach(id => cs[id] = capsOf(id)); const cs_t = (id, k) => cs[id][k];
+const pop = (r, r0, d = .35) => r < r0 ? 0 : easeOutBack(clamp((r - r0) / d));
+const fade = (r, r0, r1) => clamp((r - r0) / (r1 - r0));
+const f1 = v => v.toFixed(1);
+
+// ---------------- biểu tượng nhỏ (gốc ở tâm) ----------------
+const ICO = {
+  heart: (c = '#e0566b') => `<path d="M0 14 C-30 -6 -18 -28 0 -14 C18 -28 30 -6 0 14Z" fill="${c}" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>`,
+  x: () => `<path d="M-22 -22 L22 22M22 -22 L-22 22" stroke="#d63d3d" stroke-width="9" stroke-linecap="round"/>`,
+  coin: (t = '$') => `<circle r="20" fill="#f2c14e" stroke="${INK}" stroke-width="3"/><text y="8" font-family='${F}' font-size="22" font-weight="800" text-anchor="middle" fill="${INK}">${t}</text>`,
+  cup: (c = '#d9a066') => `<path d="M-16 -16 L16 -16 L12 22 L-12 22Z" fill="${c}" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/><rect x="-18" y="-22" width="36" height="8" rx="3" fill="#fff" stroke="${INK}" stroke-width="3"/><path d="M4 -22 L10 -40" stroke="${INK}" stroke-width="4" stroke-linecap="round"/><g fill="${INK}"><circle cx="-5" cy="15" r="2.4"/><circle cx="2" cy="16" r="2.4"/><circle cx="7" cy="14" r="2.4"/><circle cx="-1" cy="10" r="2.4"/></g>`,
+  case: () => `<rect x="-22" y="-14" width="44" height="32" rx="5" fill="#c9783a" stroke="${INK}" stroke-width="3"/><path d="M-8 -14 V-22 H8 V-14" fill="none" stroke="${INK}" stroke-width="3"/><path d="M-22 0 H22" stroke="${INK}" stroke-width="2.4"/>`,
+  brief: () => `<rect x="-24" y="-14" width="48" height="34" rx="5" fill="#8a6a4a" stroke="${INK}" stroke-width="3"/><path d="M-9 -14 V-22 H9 V-14" fill="none" stroke="${INK}" stroke-width="3"/><path d="M-24 2 H24" stroke="${INK}" stroke-width="2.4"/>`,
+  door: () => `<rect x="-20" y="-30" width="40" height="60" rx="3" fill="#c9a36b" stroke="${INK}" stroke-width="3"/><circle cx="11" cy="2" r="3" fill="${INK}"/><path d="M-4 -8 L8 -8M4 -14 L10 -8 L4 -2" fill="none" stroke="${INK}" stroke-width="3"/>`,
+  house: () => `<polygon points="-26,0 0,-26 26,0" fill="#d36b4a" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/><rect x="-18" y="0" width="36" height="26" fill="#f4e7c8" stroke="${INK}" stroke-width="3"/><rect x="-5" y="8" width="10" height="18" fill="#8a6a4a"/>`,
+  build: () => `<rect x="-24" y="-34" width="48" height="68" fill="#6c8aa6" stroke="${INK}" stroke-width="3"/>` + [-14, 2].map(x => [-24, -8, 8].map(y => `<rect x="${x}" y="${y}" width="10" height="10" fill="#f6e27a"/>`).join('')).join(''),
+  chat: (c = '#fff') => `<path d="M-24 -18 H24 Q30 -18 30 -12 V10 Q30 16 24 16 H0 L-12 28 L-10 16 H-24 Q-30 16 -30 10 V-12 Q-30 -18 -24 -18Z" fill="${c}" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/><g fill="${INK}"><circle cx="-12" cy="-1" r="3.4"/><circle cx="0" cy="-1" r="3.4"/><circle cx="12" cy="-1" r="3.4"/></g>`,
+  head: (g = false) => `<circle r="16" fill="#fff" stroke="${INK}" stroke-width="3"/><circle cx="-5" cy="-2" r="2.4" fill="${INK}"/><circle cx="6" cy="-2" r="2.4" fill="${INK}"/><path d="M-6 6 Q0 11 7 6" fill="none" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/>${g ? `<circle cx="-5" cy="-2" r="6" fill="none" stroke="${INK}" stroke-width="2"/><circle cx="6" cy="-2" r="6" fill="none" stroke="${INK}" stroke-width="2"/>` : ''}`,
+  plane: () => `<path d="M-30 0 L10 -4 L-10 -22 L0 -22 L28 -6 L40 -6 Q46 0 40 6 L28 6 L0 22 L-10 22 L10 4 L-30 0Z" fill="#fff" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>`,
+  snack: () => `<path d="M-16 -22 L16 -22 L20 22 L-20 22Z" fill="#e0566b" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/><path d="M-16 -22 L-12 -28 L-6 -22 L0 -28 L6 -22 L12 -28 L16 -22" fill="none" stroke="${INK}" stroke-width="3"/><circle cy="2" r="8" fill="#f6e27a" stroke="${INK}" stroke-width="2.4"/>`,
+  phone: () => `<rect x="-14" y="-24" width="28" height="48" rx="5" fill="#222"/><rect x="-11" y="-19" width="22" height="36" fill="#7fd6a8"/>`
+};
+const ico = (n, x, y, s = 1, rot = 0, a = 1, arg) => a <= 0 ? '' : `<g transform="translate(${f1(x)} ${f1(y)}) rotate(${rot}) scale(${s})" opacity="${a}">${ICO[n](arg)}</g>`;
+function bubble(cx, cy, w, h, s, inner, tail = [cx - w * .15, cy + h / 2 + 60], th = true) { // bong bóng suy nghĩ
+  if (s <= 0) return '';
+  const dots = th ? [[.15, .55, 9], [.5, .8, 6]].map(([u, v, r]) => { const x = lerp(tail[0], cx, u * .25 + .5 - .5 * 0), y = lerp(cy + h / 2, tail[1], 1 - v); return ''; }).join('') : '';
+  const tx = lerp(cx - w * .15, tail[0], 1), ty0 = cy + h / 2, sd = [[tail[0], tail[1], 6], [lerp(tail[0], cx, .35), lerp(tail[1], ty0, .55), 10], [lerp(tail[0], cx, .6), lerp(tail[1], ty0, .22), 14]];
+  return `<g transform="translate(${cx} ${cy}) scale(${s}) translate(${-cx} ${-cy})">${sd.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" stroke="${INK}" stroke-width="3"/>`).join('')}<rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="${Math.min(h / 2, 40)}" fill="#fff" stroke="${INK}" stroke-width="3.6"/>${inner}</g>`;
+}
+const txt = (s, x, y, size, fill = INK, anchor = 'middle', extra = '') => `<text x="${x}" y="${y}" font-family='${F}' font-size="${size}" font-weight="800" text-anchor="${anchor}" fill="${fill}" ${extra}>${s}</text>`;
+
+// ---------------- phông nền ----------------
+function office(t, o = {}) {
+  const tone = o.tone || 'day', wall = { day: '#dfe9f2', morning: '#f7e8cc', evening: '#e7cbb4' }[tone], sky = { day: '#bfe0f5', morning: '#ffe2a8', evening: '#f0a27a' }[tone];
+  let b = `<rect width="1280" height="720" fill="${wall}"/><rect y="560" width="1280" height="160" fill="#c8ad86"/><rect y="552" width="1280" height="10" fill="#b0946d"/>`;
+  b += `<g><rect x="90" y="70" width="230" height="170" fill="${sky}" stroke="#8aa0b4" stroke-width="8"/><path d="M205 70 V240 M90 155 H320" stroke="#8aa0b4" stroke-width="6"/>${tone === 'evening' ? '<circle cx="250" cy="200" r="30" fill="#ffd27a"/>' : ''}</g>`;
+  // đồng hồ
+  const cx = 640, cy = 120, hr = o.clockH ?? 10, mn = o.clockM ?? 10, ang = o.spin ? t * o.spin : null;
+  const ha = ang != null ? ang / 12 : (hr % 12 + mn / 60) * 30, ma = ang != null ? ang : mn * 6;
+  b += `<circle cx="${cx}" cy="${cy}" r="48" fill="#fff" stroke="${INK}" stroke-width="5"/>` + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(i => `<path d="M${cx} ${cy - 40} V${cy - 34}" stroke="${INK}" stroke-width="3" transform="rotate(${i * 30} ${cx} ${cy})"/>`).join('') + `<path d="M${cx} ${cy} V${cy - 24}" stroke="${INK}" stroke-width="6" stroke-linecap="round" transform="rotate(${ha} ${cx} ${cy})"/><path d="M${cx} ${cy} V${cy - 36}" stroke="${INK}" stroke-width="4" stroke-linecap="round" transform="rotate(${ma} ${cx} ${cy})"/>`;
+  b += `<g transform="translate(1100 120)"><rect x="-70" y="-50" width="140" height="100" fill="#fff" stroke="#8aa0b4" stroke-width="6"/><polyline points="-50,30 -20,-5 5,10 45,-30" fill="none" stroke="#7fb28a" stroke-width="6"/></g>`;
+  b += `<g transform="translate(1210 552)"><rect x="-22" y="-44" width="44" height="44" fill="#a8664a"/><ellipse cy="-52" rx="30" ry="22" fill="#4f9a62"/><ellipse cx="-14" cy="-70" rx="16" ry="22" fill="#3f8a52"/></g>`;
+  if (o.door) b += `<g transform="translate(1180 552)"><rect x="-60" y="-210" width="120" height="210" fill="#b7956a" stroke="#7f6540" stroke-width="6"/><circle cx="38" cy="-100" r="7" fill="#7f6540"/>${txt('EXIT', 0, -228, 20, '#2f9e63')}</g>`;
+  return b;
+}
+function deskFront(x, w = 230, pile = 0, who = 0) {
+  let o = `<rect x="${x - w / 2}" y="540" width="${w}" height="14" rx="3" fill="#8a6a4a" stroke="#5a4430" stroke-width="3"/><rect x="${x - w / 2 + 8}" y="554" width="${w - 16}" height="96" fill="#a8825a" stroke="#5a4430" stroke-width="3"/>`;
+  o += `<g><rect x="${x - 36}" y="494" width="72" height="46" rx="4" fill="#9aa5b0" stroke="${INK}" stroke-width="3"/><circle cx="${x}" cy="517" r="6" fill="#e6ebf0"/></g>`;
+  for (let i = 0; i < pile; i++) o += `<rect x="${x + 56 - (i % 2) * 5}" y="${532 - i * 9}" width="46" height="9" fill="#fff" stroke="${INK}" stroke-width="2"/>`;
+  return o;
+}
+function cafeBg(t) {
+  let b = `<rect width="1280" height="720" fill="#efdcc4"/><rect y="540" width="1280" height="180" fill="#b98c5e"/><rect y="530" width="1280" height="14" fill="#8a6540"/>`;
+  b += `<rect x="60" y="80" width="260" height="300" fill="#bfe0f5" stroke="#6a4a2c" stroke-width="10"/><path d="M190 80 V380M60 230 H320" stroke="#6a4a2c" stroke-width="6"/>`;
+  for (const x of [520, 760, 1000]) b += `<path d="M${x} 0 V60" stroke="${INK}" stroke-width="3"/><path d="M${x - 30} 100 Q${x} 40 ${x + 30} 100Z" fill="#f2c14e" stroke="${INK}" stroke-width="3"/>`;
+  b += `<g transform="translate(1100 220)"><rect x="-110" y="-60" width="220" height="110" rx="8" fill="#5a4030" stroke="${INK}" stroke-width="4"/>${txt('CÀ PHÊ', 0, 18, 46, '#f6e27a')}</g>`;
+  return b;
+}
+function beachBg(t) {
+  let b = `<rect width="1280" height="720" fill="#9fd8f2"/><circle cx="1050" cy="130" r="56" fill="#ffd66b"/>`;
+  b += `<rect y="380" width="1280" height="170" fill="#4fb0d8"/><path d="M0 400 Q80 380 160 400 T320 400 T480 400 T640 400 T800 400 T960 400 T1120 400 T1280 400" fill="none" stroke="#fff" stroke-width="4" opacity=".7"/>`;
+  b += `<rect y="540" width="1280" height="180" fill="#f1d9a0"/>`;
+  b += `<g transform="translate(150 560)"><path d="M0 0 Q-10 -120 18 -200" fill="none" stroke="#7a5a3a" stroke-width="14" stroke-linecap="round"/>${[-80, -40, 0, 40, 80].map(a => `<path d="M18 -200 Q${18 + a * 1.4} ${-250 + Math.abs(a) * .5} ${18 + a * 2} ${-190 + Math.abs(a) * .7}" fill="none" stroke="#3f9a52" stroke-width="12" stroke-linecap="round"/>`).join('')}</g>`;
+  const px = ((t * 120) % 1700) - 200; b += `<g transform="translate(${px} 170) scale(1.3)">${ICO.plane()}</g>`;
+  return b;
+}
+function streetBg(t) {
+  let b = `<defs><linearGradient id="dk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3c3a6a"/><stop offset=".7" stop-color="#e58a6a"/></linearGradient></defs><rect width="1280" height="720" fill="url(#dk)"/><rect y="560" width="1280" height="160" fill="#4a4458"/><rect y="552" width="1280" height="12" fill="#5d566c"/>`;
+  b += `<g transform="translate(220 552)"><rect x="-180" y="-380" width="360" height="380" fill="#37506c" stroke="${INK}" stroke-width="4"/>` + [0, 1, 2, 3, 4].map(r => [0, 1, 2, 3].map(c => `<rect x="${-150 + c * 80}" y="${-340 + r * 70}" width="50" height="40" fill="${(r + c) % 3 === 0 ? '#2c3f55' : '#f6e27a'}"/>`).join('')).join('') + txt('CÔNG TY', 0, -395, 34, '#fff') + `</g>`;
+  b += `<g transform="translate(1000 552)"><rect x="-170" y="-250" width="340" height="250" fill="#6a5a70" stroke="${INK}" stroke-width="4"/>` + [0, 1, 2].map(r => [0, 1, 2].map(c => `<rect x="${-130 + c * 90}" y="${-210 + r * 70}" width="50" height="40" fill="${r === 1 && c === 1 ? '#f6e27a' : '#3d3450'}"/>`).join('')).join('') + `<rect x="-26" y="-60" width="52" height="60" fill="#3d3450"/>` + txt('PHÒNG TRỌ', 0, -265, 32, '#fff') + `</g>`;
+  return b;
+}
+function nightBg(t) {
+  let b = `<rect width="1280" height="720" fill="#1f2a4a"/><rect y="560" width="1280" height="160" fill="#2c3558"/>`;
+  b += `<rect x="140" y="80" width="240" height="240" fill="#0f1a33" stroke="#5d6a96" stroke-width="8"/><path d="M260 80 V320M140 200 H380" stroke="#5d6a96" stroke-width="5"/>`;
+  const my = 240 - 80 * Math.sin(clamp((t) / 4) * Math.PI); b += `<circle cx="300" cy="${my}" r="30" fill="#fbf0c0"/><circle cx="312" cy="${my - 6}" r="26" fill="#0f1a33"/>`;
+  for (const [x, y] of [[180, 120], [340, 110], [220, 290], [360, 270]]) b += `<circle cx="${x}" cy="${y}" r="3" fill="#fff"/>`;
+  b += `<g transform="translate(980 560)"><rect x="-200" y="-70" width="400" height="70" rx="8" fill="#e9eef7" stroke="${INK}" stroke-width="3"/><rect x="-200" y="-110" width="130" height="50" rx="14" fill="#fff" stroke="${INK}" stroke-width="3"/><rect x="-200" y="-100" width="12" height="110" fill="#8a6a4a"/></g>`;
+  return b;
+}
+function plain(c1, c2) { return `<rect width="1280" height="720" fill="${c1}"/><rect y="560" width="1280" height="160" fill="${c2}"/><rect y="552" width="1280" height="10" fill="${c2}" opacity=".7"/>`; }
+
+// ---------------- kịch bản từng cảnh ----------------
+// c[i]: nhân vật i (0 bạn-có chỏm tóc, 1 kính, 2 tóc đuôi ngựa, 3 cao). Thời gian r = giây tính từ đầu cảnh.
+const W = (a, b, r0, r1) => [[r0, a, 'lin'], [r1, b]];
+const SCN = {
+  office: {
+    bg: (t, r) => office(t, { spin: r > cs.office[2] ? 900 : 0, clockH: 10, clockM: 10 }),
+    c: [
+      { x: [[0, 200]], poses: [[0, 'type'], [cs_t('office', 1), 'slump', .5, 'soft']], expr: [[0, 'neutral'], [cs_t('office', 1), 'worry']] },
+      { x: [[0, 480]], poses: [[0, 'type'], [1.5, 'scratch', .4], [2.6, 'type', .4, 'soft']], expr: [[0, 'neutral']] },
+      { x: [[0, 760]], poses: [[0, 'type']], expr: [[0, 'neutral'], [cs_t('office', 1) + 1, 'worry']] },
+      { x: [[0, 1040]], poses: [[0, 'type'], [3.8, 'scratch', .4], [4.8, 'type', .4, 'soft']], expr: [[0, 'neutral']] }
+    ],
+    fg: (t, r) => { const p = Math.floor(clamp((r - cs_t('office', 1) - .4) / 1.6) * 7); return [200, 480, 760, 1040].map((x, i) => deskFront(x, 230, i === 0 ? 0 : p)).join(''); },
+    fx: (t, r) => { const c = cs.office; let o = '';
+      o += bubble(240, 190, 140, 100, pop(r, c[1]) * (r < c[1] + 1.7 ? 1 : fade(c[1] + 2.0 - r, 0, .3)), ico('coin', 220, 190, 1.1) + `<path d="M262 170 V210 M250 198 L262 212 L274 198" fill="none" stroke="#d63d3d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>`, [215, 300]);
+      o += bubble(520, 200, 150, 100, pop(r, c[1] + 1.1) * (r < c[1] + 2.0 ? 1 : fade(c[1] + 2.3 - r, 0, .3)), `<g>${[0, 1, 2, 3].map(i => `<rect x="${478 + i * 3}" y="${222 - i * 12}" width="54" height="11" fill="#fff" stroke="${INK}" stroke-width="2.4"/>`).join('')}</g>`, [500, 310]);
+      if (r > c[2]) { const k = pop(r, c[2], .4); o += `<g transform="translate(380 215) scale(${k * .8})"><rect x="-90" y="-90" width="180" height="170" rx="10" fill="#fff" stroke="${INK}" stroke-width="5"/><rect x="-90" y="-90" width="180" height="40" rx="10" fill="#d6504a" stroke="${INK}" stroke-width="5"/>${txt(String(1 + Math.floor((r - c[2]) * 9) % 30), 0, 36, 76)}</g>`; }
+      return o; }
+  },
+  notwhy: {
+    bg: t => office(t), fg: () => deskFront(200, 230) + deskFront(1040, 230),
+    c: [{ x: [[0, 420]], poses: [[0, 'shrug'], [cs_t('notwhy', 1), 'stern', .3]], expr: [[0, 'neutral'], [.5, 'worry']], shake: [[.5, 1.5], [cs_t('notwhy', 1) + .5, cs_t('notwhy', 1) + 1.5]] }],
+    fx: (t, r) => { const c = cs.notwhy; let o = '';
+      if (r < c[1]) o += bubble(440, 215, 200, 110, pop(r, .15), ico('heart', 400, 215, 1.1) + ico('brief', 476, 219, 1) + `<g transform="translate(440 215) scale(1.5)">${ICO.x()}</g>`, [430, 335]);
+      else o += bubble(440, 215, 200, 110, pop(r, c[1] + .1), ico('door', 440, 215, 1.1) + `<g transform="translate(440 215) scale(1.6)">${ICO.x()}</g>`, [430, 335]);
+      return o; }
+  },
+  friends: {
+    bg: t => office(t, { tone: 'day' }), fg: () => '',
+    c: [
+      { x: [[0, 380]], dir: [[0, 1]], poses: [[0, 'idle'], [1.5, 'wave', .3]], expr: [[0, 'worry'], [1.3, 'smile']] },
+      { x: W(1250, 620, 0, 1.6), dir: [[0, -1]], poses: [[0, 'idle'], [1.5, 'wave', .3]], expr: [[0, 'smile']] },
+      { x: W(1300, 780, 0, 1.7), dir: [[0, -1]], poses: [[0, 'idle'], [1.6, 'wave', .3]], expr: [[0, 'smile']] },
+      { x: W(1350, 940, 0, 1.8), dir: [[0, -1]], poses: [[0, 'idle'], [1.7, 'wave', .3]], expr: [[0, 'smile']] }
+    ],
+    fx: (t, r) => [0, 1, 2].map(i => { const q = r - 1.3 - i * .15; return q > 0 ? ico('heart', 520 + i * 150, 330 - q * 140, .7 + .3 * i % 1, 0, 1 - clamp(q / .8)) : ''; }).join('') +
+      bubble(640, 150, 300, 90, pop(r, 1.0), txt('CÓ TỤI BẠN', 640, 168, 44, '#2f9e63'), [560, 215])
+  },
+  boba: {
+    bg: (t, r) => office(t, { tone: 'day', clockH: 5, clockM: 25 + Math.floor(r / 6 * 30) }),
+    fg: (t, r) => { const c = cs.boba; let o = `<rect x="250" y="548" width="780" height="14" rx="3" fill="#a8825a" stroke="#5a4430" stroke-width="3"/><rect x="262" y="562" width="756" height="90" fill="#bf9a6c" stroke="#5a4430" stroke-width="3"/>`;
+      [360, 540, 740, 920].forEach((x, i) => { const k = pop(r, .2 + i * .2, .3) * (r < .9 ? 1 : 0); if (k > 0) o += `<g transform="translate(${x} ${548 - 24 * k}) scale(${k * .8})">${ICO.cup()}</g>`; });
+      [[470, 'snack'], [640, 'snack'], [830, 'snack']].forEach(([x, n], i) => { const k = pop(r, c[1] + .1 + i * .25, .3); if (k > 0) o += `<g transform="translate(${x} ${548 - 22 * k}) scale(${k * .75})">${ICO.snack()}</g>`; });
+      return o; },
+    c: [360, 540, 740, 920].map((x, i) => ({ x: [[0, x]], dir: [[0, i < 2 ? 1 : -1]],
+      poses: [[0, 'idle'], [.8, 'toast', .35], [1.6, 'hold', .3], [cs_t('boba', 2) - .1, 'explain', .4]], expr: [[0, 'neutral'], [.9, 'smile']],
+      hold: [[.95, 99, 'cup']], talk: [[cs_t('boba', 2) + .1 + i * .35, cs_t('boba', 2) + .1 + i * .35 + .9], [cs_t('boba', 2) + 1.9 + ((i + 1) % 4) * .3, cs_t('boba', 2) + 2.6 + ((i + 1) % 4) * .3]] })),
+    fx: (t, r) => { const c = cs.boba; let o = '';
+      if (r > c[2]) [360, 540, 740, 920].forEach((x, i) => { const rr = r - c[2] - .1 - i * .35; if (rr > 0 && rr < 1.1) o += `<g transform="translate(${x + 26} 215) scale(${easeOutBack(clamp(rr / .25))})">${ICO.chat()}</g>`; });
+      return o; }
+  },
+  cafe: {
+    bg: t => cafeBg(t),
+    fg: (t, r) => `<ellipse cx="640" cy="548" rx="300" ry="20" fill="#7a5638" stroke="#4a3320" stroke-width="3"/><rect x="620" y="548" width="40" height="100" fill="#7a5638"/>` + [450, 570, 710, 830].map((x, i) => `<g transform="translate(${x} 540) scale(.7)">${ICO.cup(['#d9a066', '#e0b8d0', '#b8d8a8', '#e0c070'][i])}</g>`).join('') + `<g opacity="${pop(r, 0, .3)}"><rect x="440" y="60" width="400" height="84" rx="42" fill="#fbf6ea" stroke="${INK}" stroke-width="4"/>${txt('CUỐI TUẦN', 640, 118, 54, '#c0504d')}</g>`,
+    c: [450, 570, 710, 830].map((x, i) => ({ x: [[0, x]], dir: [[0, i < 2 ? 1 : -1]], poses: [[0, 'idle'], [.9 + i * .08, 'toast', .3], [1.5, 'idle', .3, 'soft']], expr: [[0, 'smile']], hold: [[.9, 99, 'cup']] })),
+    fx: (t, r) => r > 1.0 && r < 1.6 ? ico('heart', 640, 380 - (r - 1.0) * 60, 1, 0, 1 - (r - 1.0) / .6) : ''
+  },
+  travel: {
+    bg: (t, r) => beachBg(t), fg: () => '',
+    c: [[200, 440], [330, 580], [460, 720], [590, 860]].map(([a, b], i) => ({ x: [[0, a, 'lin'], [2.0, b]], dir: [[0, 1]], poses: [[0, 'bag'], [2.1, 'cheer', .25]], hold: [[0, 2.0, 'case']], expr: [[0, 'smile']], jumps: [[2.25 + i * .1, .5, 70]] })),
+    fx: (t, r) => `<g opacity="${pop(r, .1, .3)}">${txt('DU LỊCH', 640, 90, 64, '#fff', 'middle', 'stroke="#1a1a1a" stroke-width="5" paint-order="stroke"')}</g>`
+  },
+  lodge: {
+    bg: t => streetBg(t), fg: () => '',
+    c: [
+      { x: [[0, 640], [cs_t('lodge', 1) + 1.0, 640, 'lin'], [cs_t('lodge', 1) + 3.0, 940]], dir: [[0, -1], [cs_t('lodge', 1) + .9, 1]], poses: [[0, 'bag'], [cs_t('lodge', 2) - .2, 'think', .4, 'soft']], hold: [[0, cs_t('lodge', 2) - .3, 'case']], expr: [[0, 'worry']] },
+      { x: [[0, -500], [cs_t('lodge', 1) - .01, -500, 'lin'], [cs_t('lodge', 1), 520, 'lin'], [cs_t('lodge', 1) + 1.6, 520, 'lin'], [cs_t('lodge', 1) + 5.1, -100]], dir: [[0, 1], [cs_t('lodge', 1) + 1.5, -1]], poses: [[0, 'idle'], [cs_t('lodge', 1) + .1, 'wave', .3], [cs_t('lodge', 1) + 1.6, 'idle', .3, 'soft']], expr: [[0, 'smile']] },
+      { x: [[0, -500], [cs_t('lodge', 1) - .01, -500, 'lin'], [cs_t('lodge', 1), 440, 'lin'], [cs_t('lodge', 1) + 1.3, 440, 'lin'], [cs_t('lodge', 1) + 4.8, -100]], dir: [[0, 1], [cs_t('lodge', 1) + 1.2, -1]], poses: [[0, 'idle'], [cs_t('lodge', 1) + .1, 'wave', .3], [cs_t('lodge', 1) + 1.3, 'idle', .3, 'soft']], expr: [[0, 'smile']] },
+      { x: [[0, -500], [cs_t('lodge', 1) - .01, -500, 'lin'], [cs_t('lodge', 1), 360, 'lin'], [cs_t('lodge', 1) + 1.0, 360, 'lin'], [cs_t('lodge', 1) + 4.2, -100]], dir: [[0, 1], [cs_t('lodge', 1) + 0.9, -1]], poses: [[0, 'idle'], [cs_t('lodge', 1) + .1, 'wave', .3], [cs_t('lodge', 1) + 1.0, 'idle', .3, 'soft']], expr: [[0, 'smile']] }
+    ],
+    fx: (t, r) => { const c = cs.lodge; let o = '';
+      if (r < c[1]) { const k = fade(r, 0, 1.4); o += ico('house', 90, 80, 1.2, 0, pop(r, .1)) + txt('QUÊ', 90, 136, 26, '#fff') + `<path d="M140 90 Q640 -70 1000 170" fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="14 12" stroke-dashoffset="${-t * 30}" opacity="${pop(r, .3)}"/>` + ico('plane', 140 + 860 * k, 90 - 105 * Math.sin(k * Math.PI) + 80 * k, .9, -20 + 40 * k, pop(r, .3)) + txt('XA NHÀ', 640, 60, 44, '#f6e27a'); }
+      if (r > c[2]) o += bubble(700, 190, 260, 120, pop(r, c[2] + .1), ico('build', 630, 190, 1.2) + ico('chat', 720, 175, 1.1) + ico('chat', 780, 205, .8), [830, 330]);
+      return o; }
+  },
+  night: {
+    bg: (t, r) => nightBg(r), fg: () => '',
+    c: [{ x: [[0, 560]], dir: [[0, 1]], poses: [[0, 'phone'], [cs_t('night', 1) - .2, 'scratch', .4], [cs_t('night', 1) + 2, 'think', .5, 'soft']], hold: [[0, cs_t('night', 1) - .2, 'phone']], expr: [[0, 'neutral'], [.8, 'shock'], [1.6, 'worry']] }],
+    fx: (t, r) => { const c = cs.night; let o = '';
+      if (r < c[1]) o += bubble(560, 190, 260, 110, pop(r, .7), `<rect x="440" y="150" width="240" height="80" rx="14" fill="#d9f2e0"/>` + txt('Lương +30%', 560, 200, 34, '#2f8a52'), [570, 310]);
+      else { const wob = Math.sin((r - c[1]) * 2.6) * 10 * Math.exp(-(r - c[1]) * .25); o += bubble(560, 170, 300, 150, pop(r, c[1] + .1), `<g transform="translate(560 190) rotate(${wob})"><path d="M-110 -30 H110" stroke="${INK}" stroke-width="6"/><path d="M0 -30 V50 M-30 50 H30" stroke="${INK}" stroke-width="6"/><g transform="translate(-95 0) rotate(${-wob})"><path d="M-30 -30 L-45 10 H45 L30 -30" fill="none" stroke="${INK}" stroke-width="3"/>${ico('coin', 0, 18, .9)}${ico('coin', 14, 4, .9)}</g><g transform="translate(95 0) rotate(${-wob})"><path d="M-30 -30 L-45 10 H45 L30 -30" fill="none" stroke="${INK}" stroke-width="3"/>${ico('head', 0, 0, 1.1)}</g></g>`, [570, 330]);
+        if (r > c[1] + .6) o += `<g opacity=".9">${txt('Z', 700, 380 - (r * 40) % 60, 40, '#cfd8ff')}${txt('z', 730, 350 - (r * 40) % 60, 30, '#cfd8ff')}</g>`; }
+      return o; }
+  },
+  morning: {
+    bg: t => office(t, { tone: 'morning', clockH: 8, clockM: 30 }),
+    fg: (t, r) => { const c = cs.morning; let o = deskFront(620, 260) + deskFront(300, 230);
+      const k = easeOutBounce(clamp((r - .5) / .5)); if (r > .5 && !(r > c[1] + .2)) o += `<g transform="translate(660 ${540 - 60 * (1 - k)}) scale(.9)">${ICO.cup()}<g transform="translate(0 -52)">${ICO.heart('#f08aa6')}</g></g>`;
+      return o; },
+    c: [
+      { x: [[0, 80, 'lin'], [1.8, 480], [2.0, 480]], dir: [[0, 1]], poses: [[0, 'bag'], [1.8, 'startle', .15], [2.4, 'idle', .4, 'soft'], [cs_t('morning', 1), 'hold', .3]], hold: [[0, 1.7, 'case'], [cs_t('morning', 1) + .3, 99, 'cup']], expr: [[0, 'worry'], [1.8, 'shock'], [2.4, 'smile']] },
+      { x: [[0, 960]], dir: [[0, -1]], poses: [[0, 'idle'], [2.0, 'wave', .3]], expr: [[0, 'neutral'], [2.0, 'smile']] }
+    ],
+    fx: (t, r) => { const c = cs.morning; let o = '';
+      if (r > 2.2 && r < 3.6) o += ico('heart', 520, 300 - (r - 2.2) * 40, 1.1, 0, 1 - clamp((r - 3.0) / .6));
+      if (r > c[1]) o += [0, 1, 2, 3, 4].map(i => { const q = r - c[1] - i * .1; return q > 0 ? ico('heart', 460 + i * 40, 300 - q * 90, .6, 0, 1 - clamp(q / 1.2)) : ''; }).join('');
+      return o; }
+  },
+  price: {
+    bg: t => plain('#3a3f5a', '#2c3048'), fg: () => '',
+    c: [{ x: [[0, 460]], dir: [[0, 1]], poses: [[0, 'shrug']], expr: [[0, 'worry']], shake: [[.6, 2.4]] }],
+    fx: (t, r) => `<g transform="translate(820 40) rotate(${12 * Math.sin(r * 3) * Math.exp(-r * .6)} 0 0) scale(${pop(r, .1, .5)})"><path d="M0 0 V80" stroke="${INK}" stroke-width="3"/><path d="M-110 80 H70 L110 130 L70 180 H-110Z" fill="#fff" stroke="${INK}" stroke-width="5" stroke-linejoin="round"/><circle cx="60" cy="130" r="8" fill="#3a3f5a"/>${txt('CÁI GIÁ', -34, 142, 40)}</g>`
+  },
+  wallet: {
+    bg: t => plain('#f2ead8', '#d7c8a8'), fg: () => '',
+    c: [{ x: [[0, 330]], dir: [[0, 1]], poses: [[0, 'shrug'], [cs_t('wallet', 1), 'think', .4, 'soft']], expr: [[0, 'worry']] }],
+    fx: (t, r) => { const c = cs.wallet; let o = '';
+      const items = [['cup', .2], ['plane', .9], ['cup', 1.5], ['plane', 2.1], ['cup', 2.6]];
+      const flat = clamp(r / 3.6) * .45, sy = 1 - flat;
+      o += `<g transform="translate(790 450)"><g transform="scale(1 ${sy.toFixed(2)})"><rect x="-120" y="-80" width="240" height="160" rx="22" fill="#9a5a2c" stroke="${INK}" stroke-width="5"/><path d="M-120 -30 Q0 20 120 -30" fill="none" stroke="#6a3c1a" stroke-width="6"/><circle cx="80" cy="12" r="16" fill="#f2c14e" stroke="${INK}" stroke-width="3"/></g></g>`;
+      o += `<g transform="translate(150 150)"><rect x="-90" y="-60" width="180" height="130" rx="10" fill="#fff" stroke="${INK}" stroke-width="5"/><rect x="-90" y="-60" width="180" height="36" rx="10" fill="#d6504a" stroke="${INK}" stroke-width="5"/>${txt('CUỐI THÁNG', 0, -34, 22, '#fff')}${txt('30', 0, 48, 66)}</g>`;
+      items.forEach(([n, a], i) => { if (r < a) return; const u = clamp((r - a) / .9), x = lerp(430, 790, u), y = lerp(330, 430, u) - 90 * Math.sin(u * Math.PI); o += ico(n, x, y, .9 * (1 - .4 * u), 0, 1 - clamp((u - .85) / .15)); if (u > .8) { const q = clamp((r - a - .72) / .8); o += ico('coin', 880 + (i % 3) * 36, 420 + q * 220, .8, 0, 1 - q * .8); o += txt(n === 'cup' ? '-45k' : '-500k', 960, 330 - q * 60, 34, '#d63d3d', 'middle', `opacity="${1 - q}"`); } });
+      if (r > .4) o += `<g transform="translate(640 120) scale(${pop(r, .4)})">${txt('VẪN CHẬT', 0, 0, 64, '#d63d3d', 'middle', 'stroke="#fff" stroke-width="5" paint-order="stroke"')}</g>`;
+      return o; }
+  },
+  leave: {
+    bg: t => office(t, { tone: 'evening', door: true, clockH: 6, clockM: 0 }),
+    fg: () => deskFront(520, 230) + deskFront(760, 230),
+    c: [
+      { x: [[0, 300]], dir: [[0, 1]], poses: [[0, 'idle'], [.8, 'wave', .3], [2.0, 'idle', .5, 'soft'], [cs_t('leave', 1), 'slump', .6, 'soft']], expr: [[0, 'smile'], [2.0, 'worry']] },
+      { x: [[0, 640], [1.0, 640, 'lin'], [4.2, 1400]], dir: [[0, 1]], poses: [[0, 'carry']], hold: [[0, 99, 'box']], expr: [[0, 'smile']] },
+      { x: [[0, 900], [.8, 900, 'lin'], [3.2, 1400]], dir: [[0, 1]], poses: [[0, 'carry']], hold: [[0, 99, 'box']], expr: [[0, 'smile']] },
+      { x: [[0, 1040], [.3, 1040, 'lin'], [2.4, 1400]], dir: [[0, 1]], poses: [[0, 'carry']], hold: [[0, 99, 'box']], expr: [[0, 'smile']] }
+    ],
+    fx: (t, r) => { const c = cs.leave; let o = '';
+      if (r < 2.3) o += bubble(300, 250, 140, 100, pop(r, .2), ico('heart', 300, 250, 1.3), [300, 340]);
+      else { const q = clamp((r - 2.3) / 2.2), x = lerp(300, 1150, smooth(q)); o += ico('heart', x, 250 - 20 * Math.sin(q * 6), 1.3 - .5 * q, 0, 1 - clamp((q - .8) / .2)); }
+      return o; }
+  },
+  realize: {
+    bg: t => plain('#e3e6ef', '#cfd3e0'), fg: () => '',
+    c: [{ x: [[0, 420]], dir: [[0, 1]], poses: [[0, 'startle', .15], [.9, 'idle', .5, 'soft'], [cs_t('realize', 1), 'think', .4, 'soft']], expr: [[0, 'shock'], [1.0, 'worry'], [cs_t('realize', 1), 'neutral']] }],
+    fx: (t, r) => { const c = cs.realize; let o = '';
+      if (r < 1.6) o += `<g transform="translate(420 170) scale(${pop(r, .05, .3) * (1 + .1 * Math.sin(r * 20))})">${txt('!', 0, 40, 130, '#d63d3d')}</g>`;
+      if (r > c[1] && r < c[2]) { const q = r - c[1]; o += bubble(780, 220, 360, 130, pop(r, c[1] + .1), ico('head', 650, 220, 1.5) + ico('head', 730, 220, 1.5) + ico('head', 810, 220, 1.5, 0, 1, true) + `<path d="M650 255 Q780 300 900 255" fill="none" stroke="#2f9e63" stroke-width="5"/>` + ico('heart', 910, 220, .9), [520, 360]); }
+      if (r > c[2]) o += bubble(780, 220, 340, 130, pop(r, c[2] + .1), ico('build', 700, 220, 1.4) + `<g transform="translate(700 220) scale(1.6)">${ICO.x()}</g>` + txt('?', 860, 245, 80, INK), [520, 360]);
+      return o; }
+  },
+  noname: {
+    bg: t => plain('#f4efe6', '#ddd2bd'), fg: () => '',
+    c: [330, 510, 770, 950].map((x, i) => ({ x: [[0, x]], dir: [[0, i < 2 ? 1 : -1]], poses: [[0, 'idle'], [cs_t('noname', 1) + i * .2, 'shrug', .3], [cs_t('noname', 1) + 1.4 + i * .1, 'idle', .3, 'soft'], [cs_t('noname', 2) + .3, 'point', .3]], expr: [[0, 'neutral'], [cs_t('noname', 1), 'smile']] })),
+    fx: (t, r) => { const c = cs.noname; let o = '';
+      if (r < c[1]) { const wob = 4 * Math.sin(r * 2.5); o += `<g transform="translate(640 150) rotate(${wob})"><path d="M-160 -20 H160 M0 -20 V70 M-40 70 H40" stroke="${INK}" stroke-width="7" stroke-linecap="round"/><g transform="translate(-130 0) rotate(${-wob})"><path d="M-40 -20 L-55 20 H55 L40 -20" fill="none" stroke="${INK}" stroke-width="3"/>${txt('ĐÚNG', 0, 12, 24, '#2f9e63')}</g><g transform="translate(130 0) rotate(${-wob})"><path d="M-40 -20 L-55 20 H55 L40 -20" fill="none" stroke="${INK}" stroke-width="3"/>${txt('SAI', 0, 12, 24, '#d63d3d')}</g></g>` + `<g transform="translate(640 330)" opacity="${pop(r, 1.2, .3)}">${txt('= nhau', 0, 0, 40, '#888')}</g>`; }
+      else if (r < c[2]) o += [0, 1, 2, 3].map(i => ico('chat', [330, 510, 770, 950][i], 250 - 8 * Math.sin(r * 4 + i), pop(r, c[1] + i * .2) * .9)).join('');
+      else { const sw = 12 * Math.sin((r - c[2]) * 3) * Math.exp(-(r - c[2]) * .3); o += `<g transform="translate(640 60) rotate(${sw} 0 0) scale(${pop(r, c[2], .4)})"><path d="M-40 0 L-30 70 M40 0 L30 70" stroke="${INK}" stroke-width="3"/><rect x="-110" y="70" width="220" height="100" rx="16" fill="#fff" stroke="${INK}" stroke-width="5" stroke-dasharray="14 8"/>${txt('???', 0, 140, 66)}</g>`; }
+      return o; }
+  },
+  end: {
+    bg: t => plain('#fbe9c9', '#e8cfa0'), fg: () => '',
+    c: [330, 520, 760, 950].map((x, i) => ({ x: [[0, x]], dir: [[0, i < 2 ? 1 : -1]], poses: [[0, 'wave'], [1.0 + i * .1, 'cheer', .25]], expr: [[0, 'smile']], jumps: [[1.2 + i * .15, .5, 60]] })),
+    fx: (t, r) => { const k = pop(r, .1, .5), b = Math.sin(r * 4) * 6; return `<g transform="translate(640 ${200 + b}) scale(${k * 2.6})">${ICO.chat('#fff')}</g>` + (r > 1.8 ? ico('heart', 700, 160 - (r - 1.8) * 30, 1.2, 0, 1 - clamp((r - 1.8) / 1.4)) : ''); }
+  }
+};
+// tiện ích gọi trước khi SCN dựng (hoisting): cs_t dùng cs (tính từ TL)
+
+// ---------------- bộ xương + nhân vật ----------------
+TL.scenes[TL.order[TL.order.length - 1]].e = TL.dur;
+const CH = [{ s: 1.4, ph: 0, tuft: true }, { s: 1.5, ph: 1.3, glasses: true }, { s: 1.45, ph: 2.6, pony: true }, { s: 1.62, ph: 3.9 }];
+const DT = 1 / 240;
+const sceneAt = t => { for (const id of TL.order) if (t < L(id).e) return id; return TL.order[TL.order.length - 1]; };
+const specOf = (id, i) => SCN[id].c[i] || null;
+const inWin = (w, r) => (w || []).some(([a, b]) => r >= a && r < b);
+const SPD = 900;
+function xAt(sp, r) { return track(sp.x, r); }
+function speedAt(sp, r) { const v = Math.abs(xAt(sp, r + .05) - xAt(sp, r - .05)) / .1; return v > SPD ? 0 : v; }
+const distCache = {};
+function distAt(id, i, r) {
+  const k = id + i; if (!distCache[k]) { const sp = specOf(id, i), n = Math.ceil((L(id).e - L(id).s) / DT) + 2, d = [0]; for (let q = 1; q < n; q++) { const dx = Math.abs(xAt(sp, q * DT) - xAt(sp, (q - 1) * DT)); d.push(d[q - 1] + (dx > 20 ? 0 : dx)); } distCache[k] = d; }
+  const d = distCache[k]; return d[Math.min(d.length - 1, Math.max(0, Math.round(r / DT)))];
+}
+function dirAt(sp, r) { const dk = sp.dir || [[0, 1]]; let i = 0; while (i + 1 < dk.length && r >= dk[i + 1][0]) i++; if (i === 0) return dk[0][1]; return lerp(dk[i - 1][1], dk[i][1], smooth(clamp((r - dk[i][0]) / .22))); }
+function exprAt(sp, r) { const e = sp.expr || [[0, 'neutral']]; let v = e[0][1]; for (const [s, n] of e) if (r >= s) v = n; return v; }
+function holdAt(sp, r) { const h = (sp.hold || []).find(([a, b]) => r >= a && r < b); return h ? h[2] : null; }
+function airAt(sp, r) { let h = 0; for (const [t0, d, hh] of sp.jumps || []) { const u = (r - t0) / d; if (u > 0 && u < 1) h += hh * 4 * u * (1 - u); } return h; }
+function stateOf(id, i, r) {
+  const c = CH[i], sp = specOf(id, i), x = xAt(sp, r), sp_ = speedAt(sp, r);
+  const run = clamp((sp_ - 250) / 100), w = smooth(clamp((sp_ - 18) / 70));
+  const stride = (run > .5 ? 175 : 119) * c.s, ph = 2 * Math.PI * distAt(id, i, r) / stride;
+  let P = poseTrack(r, sp.poses || [[0, 'idle']]);
+  if (w > 0) P = mix(P, walkPose(ph, run > .5 ? 50 : 27, run > .5), w);
+  const hold = holdAt(sp, r);
+  if (hold === 'phone') { const hp = POSE.phone; P = { ...P, uaR: hp.uaR, faR: hp.faR, head: lerp(P.head, hp.head, .8) }; }
+  else if (hold === 'cup') P = { ...P, uaR: 52, faR: 108 };
+  else if (hold === 'box') P = { ...P, uaL: 62, faL: 96, uaR: 62, faR: 96 };
+  else if (hold === 'case') P = { ...P, uaR: 5, faR: 12 };
+  const talk = inWin(sp.talk, r);
+  if (talk) P = { ...P, faR: P.faR + 12 * Math.sin(r * 7 + c.ph), uaR: P.uaR + 5 * Math.sin(r * 7 + c.ph + 1), head: P.head + 4 * Math.sin(r * 9 + c.ph) };
+  if (inWin(sp.shake, r)) P = { ...P, head: P.head + 14 * Math.sin(r * 15) };
+  return { x, dirS: dirAt(sp, r), P, air: airAt(sp, r), hold, talk };
+}
+function limb(pts, w = 4.6) { return `<polyline points="${pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}" fill="none" stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`; }
+function drawChar(id, i, t, r) {
+  const c = CH[i], sp = specOf(id, i); if (!sp) return '';
+  const S = stateOf(id, i, r), P = S.P, R = a => a * D2R; if (S.x < -150 || S.x > 1430) return '';
+  const legH = (a, b) => 34 * Math.cos(R(a)) + 34 * Math.cos(R(b));
+  const hipH = Math.max(legH(P.thL, P.shL), legH(P.thR, P.shR)), hip = [0, -hipH];
+  const lean = R(P.lean), top = [hip[0] + 58 * Math.sin(lean), hip[1] - 58 * Math.cos(lean)];
+  const hA = P.lean + P.head, neck = [top[0] + 8 * Math.sin(R(hA * .6)), top[1] - 8 * Math.cos(R(hA * .6))];
+  const hc = [neck[0] + 34 * Math.sin(R(hA)), neck[1] - 34 * Math.cos(R(hA))];
+  const sh = [top[0] - 5 * Math.sin(lean), top[1] + 5 * Math.cos(lean)];
+  const lm = (p, a, l) => [p[0] + l * Math.sin(R(a)), p[1] + l * Math.cos(R(a))];
+  const leg = (th, sk) => { const k = lm(hip, th, 34), a = lm(k, sk, 34), ft = Math.max(0, -sk) * .7; return [hip, k, a, [a[0] + 12 * Math.cos(R(ft)), a[1] + 12 * Math.sin(R(ft))]]; };
+  const arm = (u, f) => { const e = lm(sh, u, 30); return [sh, e, lm(e, f, 28)]; };
+  const LL = leg(P.thL, P.shL), LR = leg(P.thR, P.shR), AL = arm(P.uaL, P.faL), AR = arm(P.uaR, P.faR);
+  let o = `<g transform="translate(${f1(S.x)} ${f1(G - S.air)}) scale(${c.s * S.dirS} ${c.s})">`;
+  o += `<ellipse cx="0" cy="${S.air / c.s + 3}" rx="${34 - S.air * .15}" ry="6" fill="#000" opacity="${Math.max(0, .16 - S.air * .001)}"/>`;
+  o += limb(LL) + limb(AL) + limb([hip, top]) + limb([top, neck]) + limb(LR);
+  o += `<g transform="translate(${hc[0]} ${hc[1]}) rotate(${hA})"><circle r="34" fill="#fff" stroke="${INK}" stroke-width="4.4"/>`;
+  if (c.pony) o += `<path d="M-26 -22 Q${-62 - 6 * Math.sin(t * 4)} ${-6 + 5 * Math.cos(t * 4)} ${-50 - 5 * Math.sin(t * 4)} 34" fill="none" stroke="${INK}" stroke-width="5" stroke-linecap="round"/><path d="M-30 -14 Q-10 -36 14 -30" fill="none" stroke="${INK}" stroke-width="5" stroke-linecap="round"/>`;
+  if (c.glasses) o += `<circle cx="9" cy="-4" r="9" fill="none" stroke="${INK}" stroke-width="2.6"/><circle cx="24" cy="-4" r="9" fill="none" stroke="${INK}" stroke-width="2.6"/><path d="M18 -4 L15 -4" stroke="${INK}" stroke-width="2.6"/>`;
+  if (c.tuft) o += `<path d="M-2 -33 Q-8 -52 6 -48" fill="none" stroke="${INK}" stroke-width="4.4" stroke-linecap="round"/>`;
+  const ex = exprAt(sp, r), ey = blink(t, c.ph) ? 1 : 3.4, mo = 15;
+  o += `<ellipse cx="9" cy="-4" rx="3.4" ry="${ey}" fill="${INK}"/><ellipse cx="24" cy="-4" rx="3.4" ry="${ey}" fill="${INK}"/>`;
+  if (S.talk) o += `<ellipse cx="17" cy="${mo}" rx="5.5" ry="${2 + 5 * Math.abs(Math.sin(t * 11 + c.ph))}" fill="${INK}"/>`;
+  else if (ex === 'smile') o += `<path d="M8 ${mo - 2} Q17 ${mo + 8} 26 ${mo - 2}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>`;
+  else if (ex === 'shock') o += `<ellipse cx="17" cy="${mo + 1}" rx="5" ry="7" fill="none" stroke="${INK}" stroke-width="3.4"/>`;
+  else if (ex === 'worry') o += `<path d="M9 ${mo + 3} Q17 ${mo - 5} 26 ${mo + 3}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/><path d="M2 -14 L14 -19M30 -16 L20 -19" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`;
+  else o += `<path d="M10 ${mo} L25 ${mo}" fill="none" stroke="${INK}" stroke-width="3.4" stroke-linecap="round"/>`;
+  o += '</g>';
+  const hd = AR[2];
+  if (S.hold === 'box') { const m = [(AL[2][0] + AR[2][0]) / 2, (AL[2][1] + AR[2][1]) / 2]; o += `<g transform="translate(${m[0] + 6} ${m[1] - 6})"><rect x="-28" y="-22" width="56" height="42" fill="#c9a36b" stroke="${INK}" stroke-width="3"/><path d="M-28 -8 H28" stroke="${INK}" stroke-width="2.4"/><rect x="-8" y="-22" width="16" height="14" fill="#e6c88e" stroke="${INK}" stroke-width="2"/></g>`; }
+  o += limb(AR);
+  if (S.hold === 'phone') o += `<g transform="translate(${hd[0]} ${hd[1]}) rotate(${P.faR - 90 + 15})"><rect x="-4" y="-16" width="9" height="20" rx="2" fill="#222"/><rect x="-2.5" y="-14" width="6" height="14" fill="#7fd6a8"/></g>`;
+  if (S.hold === 'cup') o += `<g transform="translate(${hd[0] + 6} ${hd[1] - 6}) scale(.5)">${ICO.cup()}</g>`;
+  if (S.hold === 'case') o += `<g transform="translate(${hd[0]} ${hd[1]})"><path d="M-7 0 V-6 H7 V0" fill="none" stroke="${INK}" stroke-width="3"/><rect x="-16" y="0" width="32" height="24" rx="4" fill="#c9783a" stroke="${INK}" stroke-width="3"/></g>`;
+  o += `<circle cx="${hd[0]}" cy="${hd[1]}" r="3.4" fill="${INK}"/><circle cx="${AL[2][0]}" cy="${AL[2][1]}" r="3.4" fill="${INK}"/>`;
+  return o + '</g>';
+}
+// ---------------- âm thanh theo cảnh ----------------
+function sfxList() {
+  const out = [], add = (id, r, k) => out.push({ t: +(L(id).s + r).toFixed(3), kind: k });
+  const c = cs;
+  TL.order.forEach((id, n) => { if (n) add(id, 0, 'swish'); });
+  for (let k = 0; k < 8; k++) add('office', .3 + k * .37, 'key'); add('office', c.office[1], 'pop'); add('office', c.office[1] + 1.1, 'pop'); for (let k = 0; k < 14; k++) add('office', c.office[2] + k * .11, 'tick');
+  add('notwhy', .15, 'pop'); add('notwhy', c.notwhy[1] + .1, 'pop'); add('notwhy', .5, 'huh');
+  add('friends', 1.0, 'pop'); [0, 1, 2].forEach(i => add('friends', 1.3 + i * .15, 'ting'));
+  [0, 1, 2, 3].forEach(i => add('boba', .2 + i * .2, 'ting')); add('boba', .85, 'clink'); [0, 1, 2].forEach(i => add('boba', c.boba[1] + .1 + i * .25, 'pop')); [0, 1, 2, 3].forEach(i => add('boba', c.boba[2] + .1 + i * .35, 'pop'));
+  add('cafe', .9, 'clink'); add('cafe', 1.0, 'sparkle'); add('cafe', 0, 'pop');
+  add('travel', .1, 'whoosh'); [0, 1, 2, 3].forEach(i => { add('travel', 2.25 + i * .1, 'pop'); add('travel', 2.75 + i * .1, 'thud'); });
+  add('lodge', .1, 'pop'); add('lodge', .3, 'whoosh'); add('lodge', c.lodge[2] + .1, 'pop'); add('lodge', c.lodge[1], 'ting');
+  add('night', .7, 'beep'); add('night', .8, 'beep'); add('night', .7, 'pop'); add('night', c.night[1] + .1, 'pop');
+  add('morning', .75, 'thunk'); add('morning', 1.8, 'huh'); add('morning', 2.4, 'ting'); add('morning', c.morning[1], 'sparkle');
+  add('price', .1, 'whoosh'); add('price', .6, 'thunk');
+  [.2, .9, 1.5, 2.1, 2.6].forEach(a => { add('wallet', a, 'pop'); add('wallet', a + .85, 'ting'); }); add('wallet', c.wallet[1] + .1, 'thunk');
+  add('leave', .2, 'pop'); add('leave', 2.3, 'whoosh');
+  add('realize', 0, 'huh'); add('realize', c.realize[1] + .1, 'pop'); add('realize', c.realize[2] + .1, 'pop');
+  [0, 1, 2, 3].forEach(i => add('noname', c.noname[1] + i * .2, 'pop')); add('noname', c.noname[2], 'whoosh');
+  add('end', .1, 'pop'); add('end', 1.0, 'tada'); [0, 1, 2, 3].forEach(i => add('end', 1.2 + i * .15, 'pop'));
+  out.push({ t: TL.captions[TL.captions.length - 1].e, kind: 'pop' });
+  return out;
+}
+window.stepTimes = () => { const out = [];
+  for (const id of TL.order) for (let i = 0; i < 4; i++) { const sp = specOf(id, i); if (!sp) continue; const c = CH[i]; let last = -1, n = Math.ceil((L(id).e - L(id).s) / DT);
+    for (let k = 0; k < n; k++) { const r = k * DT, s = speedAt(sp, r); if (s < 30 || sp.x[0] === undefined) { last = -1; continue; } const run = s > 250, stride = (run ? 175 : 119) * c.s, cyc = distAt(id, i, r) / stride, idx = Math.floor(cyc * 2 - .5 + 1e-6); if (idx !== last) { if (last !== -1 && Math.abs(xAt(sp, r)) < 1400 && xAt(sp, r) > -100) out.push({ t: L(id).s + r, who: i, run }); last = idx; } } }
+  return out.concat(sfxList()).sort((a, b) => a.t - b.t); };
+// ---------------- chữ chạy + thẻ kênh ----------------
+function caption(t) {
+  const c = TL.captions.find(c => t >= c.s && t < c.e); if (!c) return '';
+  const age = t - c.s, typed = Math.floor(clamp((age - .25) * TL.cps, 0, 1e9)), shown = c.text.slice(0, Math.min(typed, c.text.length));
+  let size = 44, w = measure(c.text, size); while (w > 1040 && size > 26) { size -= 2; w = measure(c.text, size); }
+  const x0 = 640 - w / 2, barW = w + 90, sc = .6 + .4 * easeOutBack(clamp(age / .35)), al = clamp(age / .12);
+  let hl = ''; if (c.hl) { const i = c.text.indexOf(c.hl); if (i >= 0 && typed > i) { const pre = measure(c.text.slice(0, i), size), vis = measure(c.text.slice(i, Math.min(typed, i + c.hl.length)), size); hl = `<rect x="${x0 + pre - 6}" y="${662 - size * .85}" width="${vis + 12}" height="${size * 1.05}" rx="8" fill="#f6e27a"/>`; } }
+  const caret = (typed < c.text.length && Math.floor(t * 4) % 2 === 0) ? `<rect x="${x0 + measure(shown, size) + 4}" y="${662 - size * .8}" width="4" height="${size}" fill="${INK}"/>` : '';
+  return `<g opacity="${al}" transform="translate(640 662) scale(${sc}) translate(-640 -662)"><rect x="${640 - barW / 2}" y="640" width="${barW}" height="68" rx="34" fill="#fbf6ea" stroke="${INK}" stroke-width="4"/>${hl}<text x="${x0}" y="${662 + size * .33}" font-family='${F}' font-size="${size}" font-weight="800" fill="${INK}">${esc(shown)}</text>${caret}</g>`;
+}
+function endcard(t) {
+  const t0 = TL.captions[TL.captions.length - 1].e; if (t < t0) return ''; const u = clamp((t - t0) / .45), sc = easeOutBack(u) * .85;
+  return `<rect width="1280" height="720" fill="#fbe9c9" opacity="${clamp((t - t0) / .25)}"/><g transform="translate(640 360) scale(${sc}) translate(-640 -330)"><rect x="360" y="180" width="560" height="300" rx="26" fill="#fbf6ea" stroke="${INK}" stroke-width="6"/><g transform="translate(398 214) scale(.8)"><rect width="240" height="240" rx="52" fill="#0E2A4D" stroke="#00C27A" stroke-width="4"/><rect x="62" y="62" width="116" height="26" rx="8" fill="#fff"/><rect x="107" y="62" width="26" height="116" rx="8" fill="#fff"/><polyline points="48,178 92,140 118,156 188,92" fill="none" stroke="#5CF2B0" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><polygon points="196,82 170,86 190,108" fill="#5CF2B0"/></g><text x="610" y="288" font-family='${F}' font-size="46" font-weight="800" fill="${INK}">TRUNG</text><text x="610" y="334" font-family='${F}' font-size="30" font-weight="800" fill="#2f9e63" letter-spacing="4">MONEY TECH</text><text x="640" y="452" font-family='${F}' font-size="28" font-weight="700" text-anchor="middle" fill="${INK}">Theo dõi để xem video tiếp theo</text></g>`;
+}
+window.draw = (t) => {
+  const id = sceneAt(t), S = SCN[id], r = Math.max(0, t - L(id).s);
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">${S.bg(t, r)}`;
+  for (let i = 0; i < 4; i++) s += drawChar(id, i, t, r);
+  s += `${S.fg(t, r)}${S.fx(t, r)}${caption(t)}${endcard(t)}`;
+  const k = Math.max(clamp(1 - (t - L(id).s) / .12), clamp(1 - (L(id).e - t) / .1)); const first = id === TL.order[0] && t - L(id).s < .12, last = id === TL.order[TL.order.length - 1] && L(id).e - t < .1;
+  const ov = (first || last) ? 0 : k; if (ov > 0) s += `<rect width="1280" height="720" fill="#1a1a1a" opacity="${ov}"/>`;
+  s += `<text x="24" y="34" font-family='${F}' font-size="20" font-weight="700" fill="#1a1a1a" opacity=".45">Video minh họa</text></svg>`;
+  document.getElementById('root').innerHTML = s;
+};
+</script>
