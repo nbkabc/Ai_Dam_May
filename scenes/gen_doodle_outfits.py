@@ -4,6 +4,7 @@ from gen_scenes import render, svg
 from gen_doodle import P, face, INK, F, LEGS
 
 PAPER = "#fbfbf6"
+MONO = True
 ARMS = {  # (tay trái, tay phải) + toạ độ bàn tay
  "down":   ("M-2 -170 Q-30 -120 -48 -86", "M2 -170 Q34 -120 52 -86", (-48, -86), (52, -86)),
  "holdR":  ("M-2 -170 Q-30 -120 -48 -86", "M2 -170 Q40 -142 68 -124", (-48, -86), (68, -124)),
@@ -76,7 +77,7 @@ def helm_after(h): return h
 
 def musketeer(x, y, s):
     coat = torso("#b8322a", -76, 42, 38) + P("M-38 -196 L36 -88 M38 -196 L-34 -88", 11) + '<path d="M-38 -196 L36 -88 M38 -196 L-34 -88" stroke="#fff" stroke-width="6" fill="none"/>' + "".join(f'<circle cx="0" cy="{yy}" r="4" fill="#f2c14e"/>' for yy in (-170, -140, -110))
-    hat = '<path d="M-48 -366 L-40 -460 L40 -460 L48 -366Z" fill="#222" stroke="#222" stroke-width="8" stroke-linejoin="round"/><rect x="-54" y="-376" width="108" height="16" rx="6" fill="#222"/><path d="M0 -460 Q6 -500 -8 -520" stroke="#f2c14e" stroke-width="10" stroke-linecap="round" fill="none"/><circle cx="-8" cy="-522" r="10" fill="#c0392b" stroke="#222" stroke-width="5"/>'
+    hat = '<path d="M-48 -366 L-40 -460 L40 -460 L48 -366Z" fill="#222" stroke="#222" stroke-width="8" stroke-linejoin="round"/><rect x="-54" y="-376" width="108" height="16" rx="6" fill="#222"/><path d="M0 -460 Q6 -500 -8 -520" stroke="#222" stroke-width="10" stroke-linecap="round" fill="none"/><circle cx="-8" cy="-522" r="10" fill="#c0392b" stroke="#222" stroke-width="5"/>'
     musket = '<path d="M86 -24 L86 -330" stroke="#222" stroke-width="12" stroke-linecap="round"/><path d="M86 -24 L86 -330" stroke="#6b6f76" stroke-width="5" stroke-linecap="round"/><path d="M86 -24 L90 -110" stroke="#8a5a2c" stroke-width="12" stroke-linecap="round"/>'
     return char(x, y, s, "upR", sleeves=("#b8322a", 1.0), pants="#fff", garment=coat, shoes="#222", expr="smile", hat=hat, front=musket)
 
@@ -142,16 +143,31 @@ def investor(x, y, s):
 
 FILT = '<filter id="wob" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="4"/></filter>'
 
+import re
+MONO_DEFS = ('<pattern id="h1" width="11" height="11" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="11" height="11" fill="#fff"/><line x1="0" y1="0" x2="0" y2="11" stroke="#222" stroke-width="3.4"/></pattern>'
+             '<pattern id="h2" width="9" height="9" patternUnits="userSpaceOnUse"><rect width="9" height="9" fill="#fff"/><path d="M0 0L9 9M9 0L0 9" stroke="#222" stroke-width="2.6"/></pattern>')
+def mono(markup):
+    def f(m):
+        attr, col = m.group(1), m.group(2).lower()
+        if col in ('#222', '#fff', '#ffffff', '#1a1a1a'): return m.group(0)
+        r, g, b = (int(col[i:i + 2], 16) / 255 for i in (1, 3, 5)); lum = .2126 * r + .7152 * g + .0722 * b
+        if lum < .26: return f'{attr}="#222"'
+        if lum < .46: return f'{attr}="url(#h2)"'
+        if lum < .72: return f'{attr}="url(#h1)"'
+        return f'{attr}="#fff"'
+    return re.sub(r'(fill|stroke)="(#[0-9a-fA-F]{6})"', f, markup)
+
 def sheet(title, items, cols, rows, s, ttl):
-    b = f'<rect width="1600" height="900" fill="{PAPER}"/><g filter="url(#wob)">'
+    b = '<g filter="url(#wob)">'
     cw, rh = 1600 // cols, (900 - 70) // rows
     out = ""
     for i, (fn, name, sub) in enumerate(items):
         cx, cy = (i % cols) * cw + cw // 2, 70 + (i // cols) * rh + rh - 70
         b += fn(cx, cy, s)
         out += label(cx, cy + 40, name, sub)
+    if MONO: b = mono(b)
     b += '</g>' + out + f'<text x="800" y="48" {F} font-size="36" font-weight="800" text-anchor="middle" fill="{INK}">{ttl}</text>'
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900"><defs>{FILT}</defs>{b}</svg>'
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900"><defs>{FILT}{MONO_DEFS}</defs><rect width="1600" height="900" fill="{PAPER}"/>{b}</svg>'
     return svg(b, '<filter id="wob" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="4"/></filter>')
 
 if __name__ == "__main__":
@@ -159,5 +175,5 @@ if __name__ == "__main__":
     hist = [(caveman, "Người tiền sử", "da thú"), (roman, "Chiến binh La Mã", "mũ, khiên, giáo"), (knight, "Hiệp sĩ", "giáp, khiên, kiếm"), (musketeer, "Lính thế kỷ 18", "mũ cao, áo đỏ"), (soldier, "Lính hiện đại", "mũ, áo giáp, balo")]
     life = [(office, "Nhân viên văn phòng", "sơ mi, cà vạt"), (boss, "Giám đốc", "vest, kính, cặp"), (teller, "Nhân viên ngân hàng", "áo gile, tai nghe"), (shipper, "Shipper", "mũ, áo khoác, thùng hàng"),
             (shopkeeper, "Chủ tiệm", "tạp dề, túi hàng"), (student, "Sinh viên", "áo hoodie, balo"), (it, "Dân công nghệ", "hoodie, tai nghe, laptop"), (investor, "Nhà đầu tư", "áo khoác, điện thoại")]
-    for name, items, cols, rows, s, ttl in (("01-lich-su", hist, 5, 1, .98, "Nhân vật lịch sử (kiểu người que nét bút lông)"), ("02-doi-song", life, 4, 2, .74, "Nhân vật đời sống và tài chính")):
+    for name, items, cols, rows, s, ttl in (("01-lich-su-nen-trang", hist, 5, 1, 1.2, "Nhân vật lịch sử (kiểu người que nét bút lông)"), ("02-doi-song-nen-trang", life, 4, 2, .74, "Nhân vật đời sống và tài chính")):
         open(f"outfits/{name}.svg", "w").write(sheet(name, items, cols, rows, s, ttl)); render(f"outfits/{name}.svg", f"outfits/{name}.png", 1600, 900)
