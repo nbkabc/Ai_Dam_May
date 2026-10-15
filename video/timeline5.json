@@ -1,0 +1,305 @@
+{
+ "fps": 24,
+ "dur": 67.99,
+ "cps": 18,
+ "ground": 612,
+ "scenes": {
+  "office": {
+   "s": 0.0,
+   "e": 7.54
+  },
+  "notwhy": {
+   "s": 7.54,
+   "e": 11.26
+  },
+  "friends": {
+   "s": 11.26,
+   "e": 13.5
+  },
+  "boba": {
+   "s": 13.5,
+   "e": 18.97
+  },
+  "cafe": {
+   "s": 18.97,
+   "e": 20.76
+  },
+  "travel": {
+   "s": 20.76,
+   "e": 24.16
+  },
+  "lodge": {
+   "s": 24.16,
+   "e": 30.45
+  },
+  "night": {
+   "s": 30.45,
+   "e": 33.78
+  },
+  "morning": {
+   "s": 33.78,
+   "e": 38.51
+  },
+  "price": {
+   "s": 38.51,
+   "e": 41.48
+  },
+  "wallet": {
+   "s": 41.48,
+   "e": 46.13
+  },
+  "leave": {
+   "s": 46.13,
+   "e": 50.59
+  },
+  "realize": {
+   "s": 50.59,
+   "e": 57.12
+  },
+  "noname": {
+   "s": 57.12,
+   "e": 63.29
+  },
+  "end": {
+   "s": 63.29,
+   "e": 66.19
+  }
+ },
+ "order": [
+  "office",
+  "notwhy",
+  "friends",
+  "boba",
+  "cafe",
+  "travel",
+  "lodge",
+  "night",
+  "morning",
+  "price",
+  "wallet",
+  "leave",
+  "realize",
+  "noname",
+  "end"
+ ],
+ "captions": [
+  {
+   "s": 0.0,
+   "e": 2.52,
+   "text": "Giới trẻ bây giờ có một chuyện nghe vậy mà thật,",
+   "hl": "nghe vậy mà thật",
+   "cps": 23.8
+  },
+  {
+   "s": 2.52,
+   "e": 4.66,
+   "text": "lương không cao, việc cũng chẳng nhẹ,",
+   "hl": "lương không cao",
+   "cps": 21.6
+  },
+  {
+   "s": 4.66,
+   "e": 7.54,
+   "text": "vậy mà vẫn ở lại công ty rất lâu.",
+   "hl": "rất lâu",
+   "cps": 14.3
+  },
+  {
+   "s": 7.54,
+   "e": 8.87,
+   "text": "Không phải vì mê công việc,",
+   "hl": "mê công việc",
+   "cps": 25.4
+  },
+  {
+   "s": 8.87,
+   "e": 11.26,
+   "text": "cũng không phải vì không dám đi.",
+   "hl": "không dám đi",
+   "cps": 16.7
+  },
+  {
+   "s": 11.26,
+   "e": 13.5,
+   "text": "Mà vì ở đó có tụi bạn.",
+   "hl": "có tụi bạn",
+   "cps": 14
+  },
+  {
+   "s": 13.5,
+   "e": 15.57,
+   "text": "Trên công ty thì rủ nhau đặt trà sữa,",
+   "hl": "trà sữa",
+   "cps": 22.3
+  },
+  {
+   "s": 15.57,
+   "e": 16.7,
+   "text": "chia nhau đồ ăn vặt,",
+   "hl": "đồ ăn vặt",
+   "cps": 22.1
+  },
+  {
+   "s": 16.7,
+   "e": 18.97,
+   "text": "ngồi tán dóc tới giờ về.",
+   "hl": "tán dóc",
+   "cps": 14
+  },
+  {
+   "s": 18.97,
+   "e": 20.76,
+   "text": "Cuối tuần hẹn nhau đi cà phê,",
+   "hl": "cà phê",
+   "cps": 20.3
+  },
+  {
+   "s": 20.76,
+   "e": 24.16,
+   "text": "tới dịp lễ còn rủ nhau đi chơi, đi du lịch.",
+   "hl": "đi du lịch",
+   "cps": 15.8
+  },
+  {
+   "s": 24.16,
+   "e": 25.63,
+   "text": "Nhiều bạn đi làm xa nhà,",
+   "hl": "xa nhà",
+   "cps": 20.4
+  },
+  {
+   "s": 25.63,
+   "e": 27.41,
+   "text": "ra khỏi công ty là về phòng trọ,",
+   "hl": "phòng trọ",
+   "cps": 22.5
+  },
+  {
+   "s": 27.41,
+   "e": 30.45,
+   "text": "nên công ty thành nơi có người để nói chuyện.",
+   "hl": "có người để nói chuyện",
+   "cps": 18.5
+  },
+  {
+   "s": 30.45,
+   "e": 32.55,
+   "text": "Có đợt người ta rủ qua chỗ lương cao hơn,",
+   "hl": "lương cao hơn",
+   "cps": 24.4
+  },
+  {
+   "s": 32.55,
+   "e": 33.78,
+   "text": "bạn ngồi nghĩ cả đêm,",
+   "hl": "nghĩ cả đêm",
+   "cps": 21.3
+  },
+  {
+   "s": 33.78,
+   "e": 37.07,
+   "text": "rồi sáng ra thấy ly trà sữa ai đó để sẵn trên bàn,",
+   "hl": "ly trà sữa",
+   "cps": 19.0
+  },
+  {
+   "s": 37.07,
+   "e": 38.51,
+   "text": "là thôi, ở lại.",
+   "hl": "ở lại",
+   "cps": 14
+  },
+  {
+   "s": 38.51,
+   "e": 41.48,
+   "text": "Cái giá của chuyện đó thì ít ai nói ra.",
+   "hl": "Cái giá",
+   "cps": 16.4
+  },
+  {
+   "s": 41.48,
+   "e": 42.57,
+   "text": "Cuối tháng vẫn chật,",
+   "hl": "vẫn chật",
+   "cps": 22.9
+  },
+  {
+   "s": 42.57,
+   "e": 46.13,
+   "text": "mà ly trà sữa nào, chuyến đi nào cũng tốn tiền.",
+   "hl": "tốn tiền",
+   "cps": 16.5
+  },
+  {
+   "s": 46.13,
+   "e": 47.89,
+   "text": "Và khi mấy người đó lần lượt nghỉ,",
+   "hl": "lần lượt nghỉ",
+   "cps": 24.1
+  },
+  {
+   "s": 47.89,
+   "e": 50.59,
+   "text": "cái lý do để ở lại cũng đi theo.",
+   "hl": "đi theo",
+   "cps": 14.8
+  },
+  {
+   "s": 50.59,
+   "e": 51.3,
+   "text": "Lúc đó nhiều bạn mới giật mình,",
+   "hl": "giật mình",
+   "cps": 40
+  },
+  {
+   "s": 51.3,
+   "e": 54.96,
+   "text": "hóa ra mình gắn bó với những người ngồi cạnh mình,",
+   "hl": "gắn bó với những người ngồi cạnh",
+   "cps": 17.1
+  },
+  {
+   "s": 54.96,
+   "e": 57.12,
+   "text": "chứ đâu phải với công ty.",
+   "hl": "đâu phải với công ty",
+   "cps": 14.5
+  },
+  {
+   "s": 57.12,
+   "e": 58.7,
+   "text": "Chuyện này chẳng có đúng sai,",
+   "hl": "chẳng có đúng sai",
+   "cps": 22.9
+  },
+  {
+   "s": 58.7,
+   "e": 60.61,
+   "text": "chỉ là nhiều bạn trẻ đang sống như vậy,",
+   "hl": "đang sống như vậy",
+   "cps": 25.5
+  },
+  {
+   "s": 60.61,
+   "e": 63.29,
+   "text": "mà chưa ai gọi nó ra thành tên.",
+   "hl": "gọi nó ra thành tên",
+   "cps": 14.5
+  },
+  {
+   "s": 63.29,
+   "e": 64.82,
+   "text": "Nếu bạn thấy mình trong đó,",
+   "hl": "thấy mình trong đó",
+   "cps": 22.1
+  },
+  {
+   "s": 64.82,
+   "e": 66.19,
+   "text": "kể mình nghe ở bình luận nha.",
+   "hl": "kể mình nghe",
+   "cps": 26.5
+  }
+ ],
+ "audio": "voice-ban-be.mp3"
+}

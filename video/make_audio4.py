@@ -65,8 +65,8 @@ for e in steps:
     if "kind" in e: add(e["t"], SND[e["kind"]](), GAIN.get(e["kind"], .6))
     else: add(e["t"], step(1.5 if e["run"] else 1.0), .55 if e["run"] else .4)
 for c in TL["captions"]:
-    add(c["s"] - .05, whoosh(.3), .25)
-    for k in range(0, len(c["text"]), 3): add(c["s"] + .25 + k / TL["cps"], tick(), .45)
+    add(c["s"] - .05, whoosh(.3), .2)
+    for k in range(0, len(c["text"]), 3): add(c["s"] + .1 + k / c.get("cps", TL["cps"]), tick(), .25)
 buf = np.zeros(int(SR * (TL["dur"] + 1.5)))
 for t, s, g in ev:
     i = int(t * SR); n = min(len(s), len(buf) - i)

@@ -403,7 +403,7 @@ window.stepTimes = () => { const out = [];
 // ---------------- chữ chạy + thẻ kênh ----------------
 function caption(t) {
   const c = TL.captions.find(c => t >= c.s && t < c.e); if (!c) return '';
-  const age = t - c.s, typed = Math.floor(clamp((age - .25) * TL.cps, 0, 1e9)), shown = c.text.slice(0, Math.min(typed, c.text.length));
+  const age = t - c.s, typed = Math.floor(clamp((age - .1) * (c.cps || TL.cps), 0, 1e9)), shown = c.text.slice(0, Math.min(typed, c.text.length));
   let size = 44, w = measure(c.text, size); while (w > 1040 && size > 26) { size -= 2; w = measure(c.text, size); }
   const x0 = 640 - w / 2, barW = w + 90, sc = .6 + .4 * easeOutBack(clamp(age / .35)), al = clamp(age / .12);
   let hl = ''; if (c.hl) { const i = c.text.indexOf(c.hl); if (i >= 0 && typed > i) { const pre = measure(c.text.slice(0, i), size), vis = measure(c.text.slice(i, Math.min(typed, i + c.hl.length)), size); hl = `<rect x="${x0 + pre - 6}" y="${662 - size * .85}" width="${vis + 12}" height="${size * 1.05}" rx="8" fill="#f6e27a"/>`; } }

@@ -1,6 +1,6 @@
 # Kịch bản phân cảnh — "Ở lại vì bạn bè" (~73 s)
 
-Phong cách: người que đầu tròn, không quần áo, hoạt hình khớp xương. Video: `video/out/video-ban-be-73s.mp4`. Thời gian phụ đề **ước tính** (3,8 từ/giây) — khi có giọng Vbee sẽ chỉnh lại.
+Phong cách: người que đầu tròn, không quần áo, hoạt hình khớp xương. Video: `video/out/video-ban-be-73s.mp4`. Đã canh theo giọng Vbee thật (`timeline5.json`); video có giọng đọc: `video/out/video-ban-be-voice.mp4`.
 
 | # | Giây | Lời | Hình | Âm thanh |
 |---|---|---|---|---|
